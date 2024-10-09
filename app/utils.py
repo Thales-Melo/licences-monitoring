@@ -4,6 +4,7 @@ import io
 import logging
 
 import aiohttp
+from flask import request
 from models.condicionante import Condicionante
 from models.licenca import Licenca
 # from . import db
@@ -153,47 +154,49 @@ def ordenar_arquivos(arquivos, criterio='numero', ordem='asc'):
 #     # aqui vamos atualizar a licença, fazendo com que as condicionantes que tem no ofício sejam colocadas no lugar das que estão na licença e possuem o mesmo número
 
 def encontrar_licenca_com_numero_de_processo(numero_processo):
-    for file_id, file_data in Config.ARQUIVOS_ENTREGUES.items():
-        if (file_data.get('numero_processo') == numero_processo):
-            return file_id
-    return None
+    return next(
+        (
+            file_id
+            for file_id, file_data in Config.ARQUIVOS_ENTREGUES.items()
+            if (file_data.get('numero_processo') == numero_processo)
+        ),
+        None,
+    )
 
 def encontrar_licenca_com_numero_de_processo_encerradas(numero_processo):
-    for file_id, file_data in Config.ARQUIVOS_ENCERRADOS.items():
-        if (file_data.get('numero_processo') == numero_processo):
-            return file_id
-    return None
+    return next(
+        (
+            file_id
+            for file_id, file_data in Config.ARQUIVOS_ENCERRADOS.items()
+            if (file_data.get('numero_processo') == numero_processo)
+        ),
+        None,
+    )
 
 def encontrar_licenca_com_numero_de_processo_nao_entregues(numero_processo):
-    for file_id, file_data in Config.ARQUIVOS_NAO_ENTREGUES.items():
-        if (file_data.get('numero_processo') == numero_processo):
-            return file_id
-    return None
+    return next(
+        (
+            file_id
+            for file_id, file_data in Config.ARQUIVOS_NAO_ENTREGUES.items()
+            if (file_data.get('numero_processo') == numero_processo)
+        ),
+        None,
+    )
 
 def verificar_se_oficio(file_id):
     # Verifica se o arquivo é um ofício
-    if 'OF' in Config.ARQUIVOS_NAO_ENTREGUES[file_id]['tipo']:
-        return True
-    return False
+    return 'OF' in Config.ARQUIVOS_NAO_ENTREGUES[file_id]['tipo']
 
 
 
 
 def calcular_dias_prazo(prazo_str):
-    # Verifica se o formato é MES/ANO
-    match_mes_ano = re.match(r'(\d{2})/(\d{4})', prazo_str)
-    if match_mes_ano:
-        mes, ano = int(match_mes_ano.group(1)), int(match_mes_ano.group(2))
+    if match_mes_ano := re.match(r'(\d{2})/(\d{4})', prazo_str):
+        mes, ano = int(match_mes_ano[1]), int(match_mes_ano[2])
         prazo_data = datetime(ano, mes, 1)  # Primeiro dia do mês
-        dias = (prazo_data - datetime.now()).days
-        return dias
-
-    # Verifica se o formato é N dias
-    match_dias = re.match(r'(\d+)\s*\(\w+\)\s*dias', prazo_str)
-    if match_dias:
-        dias = int(match_dias.group(1))
-        return dias
-
+        return (prazo_data - datetime.now()).days
+    if match_dias := re.match(r'(\d+)\s*\(\w+\)\s*dias', prazo_str):
+        return int(match_dias[1])
     return None
 
 import docx
@@ -203,7 +206,7 @@ def extrair_dados_oficio(docx_file):
     doc = docx.Document(docx_file)
     numero_processo_oficio = None
     condicionantes_oficio = []
-    
+
     is_oficio = False
     current_condicionante = None
     current_numero = None
@@ -222,17 +225,19 @@ def extrair_dados_oficio(docx_file):
         if "OF/SEMMA" in text:
             is_oficio = True
             # print("OFICIO - Encontrado ofício")
-        
+
         if is_oficio:
             # Extrair o número do processo
             if "Processo:" in text:
                 numero_processo_oficio = text.split("Processo:")[-1].strip()
-            
-            # Verificar se estamos na seção de condicionantes
-            match = re.match(r'Condicionante\s*n[°º]\s*(\d+)\s*-\s*(.*)', text, re.IGNORECASE)
-            if match:
-                current_numero = match.group(1)  # Captura o número da condicionante
-                current_condicionante = match.group(2).strip()
+
+            if match := re.match(
+                r'Condicionante\s*n[°º]\s*(\d+)\s*-\s*(.*)',
+                text,
+                re.IGNORECASE,
+            ):
+                current_numero = match[1]
+                current_condicionante = match[2].strip()
                 current_prazos = []  # Limpa os prazos anteriores para a nova condicionante
 
             # Verifica se a linha contém a palavra-chave "Prazo:" e extrai o(s) prazo(s)
@@ -244,10 +249,10 @@ def extrair_dados_oficio(docx_file):
             # Salvar a condicionante se houver
             if current_condicionante and current_numero:
                 # print(f"OFICIO - Condicionante {current_numero}: {current_condicionante}")
-                
+
                 if not current_prazos:
                     current_prazos.append("Não Definido")
-            
+
             # Condicionante atualizada
                 # Busca a licença correspondente pelo número do processo
                 for dicionario in [Config.ARQUIVOS_NAO_ENTREGUES, Config.ARQUIVOS_ENTREGUES, Config.ARQUIVOS_ENCERRADOS]:
@@ -258,7 +263,7 @@ def extrair_dados_oficio(docx_file):
                             if licenca and isinstance(licenca, Licenca):
                                 # print("OFICIO - n da licenca original:", licenca.numero)
                                 licenca_copia = licenca.copiar()  # Copia os atributos da licença original
-                                
+
                                 # Atualizar a condicionante
                                 for cond in licenca_copia.condicionantes:
                                     if cond.numero.lstrip('0') == current_numero.lstrip('0'):
@@ -270,7 +275,7 @@ def extrair_dados_oficio(docx_file):
                                         # condicionantes_oficio.append(cond)
                                         if (cond not in condicionantes_oficio):
                                             condicionantes_oficio.append(cond)
-                                        
+
                                         # data = licenca_copia
                                         # print("Condicionante atualizada com sucesso")
                                         # salvar_dicionarios()
@@ -283,7 +288,7 @@ def extrair_dados_oficio(docx_file):
 
     # Salvar os dicionários globalmente
     # salvar_dicionarios()
-    
+
     if (licenca_copia is None):
         # print("extrair_dados_oficio: Licença não encontrada")
         return None
@@ -354,9 +359,7 @@ def extrair_dados_licenca(docx_file):
             continue
 
         if is_condicionante_section:
-            # Identificar se o texto começa com um número seguido de um hífen, indicando uma nova condicionante
-            match = re.match(r'(\d+)\s*-\s*(.*)', text)
-            if match:
+            if match := re.match(r'(\d+)\s*-\s*(.*)', text):
                 # Se já temos uma condicionante em andamento, salvar a anterior antes de começar a nova
                 if current_condicionante:
                     # Se não houver prazos, salvar como "Não Definido"
@@ -372,7 +375,7 @@ def extrair_dados_licenca(docx_file):
                         condicionantes.append(Condicionante(descricao=descricao_final, prazo=prazo, numero=current_numero))
 
                 # Iniciar uma nova condicionante
-                current_numero = match.group(1)  # Captura o número da condicionante
+                current_numero = match[1]
                 current_condicionante = match.group(2).strip()
                 current_prazos = []  # Limpa os prazos anteriores para a nova
 
@@ -380,7 +383,7 @@ def extrair_dados_licenca(docx_file):
             if "Prazo:" in text:
                 prazos_texto = text.split("Prazo:")[-1].strip()
                 prazos_lista = [p.strip().rstrip(";") for p in prazos_texto.split(",")]
-                
+
                 # Adiciona os prazos encontrados à lista
                 current_prazos.extend(prazos_lista)
 
@@ -414,14 +417,12 @@ def extrair_dados_licenca(docx_file):
         for row in table.rows:
             for cell in row.cells:
                 text = cell.text.strip()
-                
+
                 if not text:
                     continue
-                
-                # Verificar se o texto corresponde ao padrão do tipo e número da licença
-                match_licenca = padrao_licenca_tabela.search(text)
-                if match_licenca:
-                    tipo_licenca = match_licenca.group(1)  # Captura o tipo da licença (ex: "LO", "LP", etc.)
+
+                if match_licenca := padrao_licenca_tabela.search(text):
+                    tipo_licenca = match_licenca[1]
                     numero = match_licenca.group(2)  # Captura o número da licença (ex: "015/2022")
 
     # print(f'Número: {numero}')
@@ -432,46 +433,43 @@ def extrair_dados_licenca(docx_file):
 
     # Retorne a licença com o tipo também
     return Licenca(numero, tipo_licenca, requerente, cnpj, numero_processo, endereco, atividade, classe, porte, potencial_poluidor, coordenadas, validade, condicionantes)
-
-
-
-# Prefixo para o Google Drive
 async def processar_arquivo(session, file_id, file_data):
+    if file_data.get('data'):
+        return
     # print(f'Processando arquivo {file_id}...')
 
     prefix = 'https://drive.google.com/uc?/export=download&id='
-    if not file_data.get('data'):  # Verifica se os dados ainda não foram carregados
-        try:
-            # Verifica se o file_id já existe no banco de dados
-            if Config.DOCX_FILES_COLLECTION.find_one({'file_id': file_id}):
-                logging.info(f'Licença para {file_id} já está no banco de dados.')
-                return
+    try:
+        # Verifica se o file_id já existe no banco de dados
+        if Config.DOCX_FILES_COLLECTION.find_one({'file_id': file_id}):
+            logging.info(f'Licença para {file_id} já está no banco de dados.')
+            return
 
-            url = f'{prefix}{file_id}'
-            async with session.get(url) as resposta:
-                resposta.raise_for_status()
-                conteudo = await resposta.read()
+        url = f'{prefix}{file_id}'
+        async with session.get(url) as resposta:
+            resposta.raise_for_status()
+            conteudo = await resposta.read()
 
-                licenca = extrair_dados_licenca(io.BytesIO(conteudo))
-                if licenca is not None and isinstance(licenca, Licenca):
-                    # Salvar o arquivo .docx no MongoDB
-                    Config.DOCX_FILES_COLLECTION.insert_one({
-                        'file_id': file_id,
-                        'data': Binary(conteudo)
-                    })
+            licenca = extrair_dados_licenca(io.BytesIO(conteudo))
+            if licenca is not None and isinstance(licenca, Licenca):
+                # Salvar o arquivo .docx no MongoDB
+                Config.DOCX_FILES_COLLECTION.insert_one({
+                    'file_id': file_id,
+                    'data': Binary(conteudo)
+                })
 
-                    file_data['data'] = repr(licenca)
-                    file_data['numero_processo'] = licenca.numero_processo
-                    file_data['numero'] = licenca.numero
-                    file_data['tipo'] = licenca.tipo
-                    file_data['nome'] = licenca.requerente
-                    logging.info(f'Licença para {file_id} carregada e salva no banco de dados.')
+                file_data['data'] = repr(licenca)
+                file_data['numero_processo'] = licenca.numero_processo
+                file_data['numero'] = licenca.numero
+                file_data['tipo'] = licenca.tipo
+                file_data['nome'] = licenca.requerente
+                logging.info(f'Licença para {file_id} carregada e salva no banco de dados.')
 
-                else:
-                    logging.info(f'Erro ao carregar licença para {file_id}')
+            else:
+                logging.info(f'Erro ao carregar licença para {file_id}')
 
-        except Exception as e:
-            logging.error(f'Erro ao carregar licença para {file_id}: {e}')
+    except Exception as e:
+        logging.error(f'Erro ao carregar licença para {file_id}: {e}')
 
 
 async def carregar_licencas():
@@ -540,8 +538,7 @@ def parse_licenca(data):
     }
 
     for key, pattern in patterns.items():
-        match = pattern.search(data)
-        if match:
+        if match := pattern.search(data):
             if key == 'numero' and not numero_ja_lido:
                 numero = match.group(1)
                 numero_ja_lido = True
@@ -593,11 +590,7 @@ def parse_licenca(data):
 
 def get_validade_em_dias(validade):
     # "validade" é uma string nesse formato: 1460 (MIL QUATROCENTOS E SESSENTA) DIAS
-    if validade is None:
-        return None
-    # Extrai o número de dias da string
-    dias = int(re.search(r'\d+', validade).group())
-    return dias
+    return None if validade is None else int(re.search(r'\d+', validade).group())
 
 def calcula_tempo_restante(licenca):
     if licenca is None or licenca.validade is None:
@@ -612,9 +605,7 @@ def calcula_tempo_restante(licenca):
         return None
     data_validade = data_carimbo + timedelta(days=validade_em_dias)
     tempo_restante = data_validade - datetime.now()
-    dias_restantes = tempo_restante.days
-    # print("Dias restantes: ", dias_restantes)
-    return dias_restantes
+    return tempo_restante.days
 
 
 
@@ -625,64 +616,56 @@ def tempo_restante_condicionantes(licenca: Licenca, file_id):
     # verificar se a licença está em outros dicionários que não seja o de arquivos_entregues
     # se tiver em algum outro, retorna a lista de condicionantes sem alterar nada
 # unique
-    if file_id in Config.ARQUIVOS_ENTREGUES:
-        # Calcular o tempo restante para cumprir o prazo da condicionante
-        if (licenca.data_carimbo is not None) and (licenca.validade is not None):
-            # data_carimbo = datetime.strptime(licenca.data_carimbo, '%d/%m/%Y')
-            # data_validade = datetime.strptime(licenca.validade, '%d/%m/%Y')
+    if file_id in Config.ARQUIVOS_ENTREGUES and ((licenca.data_carimbo is not None) and (licenca.validade is not None)):
+        for cond in licenca.condicionantes:
+            if cond.cumprida == 'False':
+                prazo_texto = cond.prazo
 
-            for cond in licenca.condicionantes:
-                if cond.cumprida == 'False':
-                    prazo_texto = cond.prazo
+                # Caso o prazo seja "Não Definido"
+                if prazo_texto == "Não Definido":
+                    cond.tempo_restante = None
+                elif re.match(r'\d{2}/\d{4}', prazo_texto):
+                    ano = prazo_texto.split('/')[1]
+                    if len(ano) > 4:
+                        ano = ano[:4] + ano[5:]  # Remove o quinto caractere
 
-                    # Caso o prazo seja "Não Definido"
-                    if prazo_texto == "Não Definido":
-                        cond.tempo_restante = None
-                    # Caso o prazo seja no formato MES/ANO
-                    elif re.match(r'\d{2}/\d{4}', prazo_texto):
-                        ano = prazo_texto.split('/')[1]
-                        if len(ano) > 4:
-                            ano = ano[:4] + ano[5:]  # Remove o quinto caractere
+                    mes = int(prazo_texto.split('/')[0])
+                    ano = int(ano)  # Converte o ano para inteiro
+                    data_prazo = datetime(ano, mes, 1)
+                    cond.tempo_restante = (data_prazo - datetime.now()).days
+                elif 'dias' in prazo_texto and 'antes' not in prazo_texto:
+                    dias = int(re.search(r'\d+', prazo_texto).group())
+                    # data_prazo = data_carimbo + timedelta(days=dias)
+                    # cond.tempo_restante = prazo - (datetime.now() - datetime.strptime(licenca.data_carimbo, '%d/%m/%Y')).days
+                    if (cond.tem_oficio == 'True') and (cond.data_oficio is not None):
+                        # Converter cond.data_oficio para o formato desejado "dd/mm/yyyy", se necessário
+                        if '-' in cond.data_oficio:  # Verifica se o formato está como "yyyy-mm-dd"
+                            cond.data_oficio = datetime.strptime(cond.data_oficio, '%Y-%m-%d').strftime('%d/%m/%Y')
 
-                        mes = int(prazo_texto.split('/')[0])
-                        ano = int(ano)  # Converte o ano para inteiro
-                        data_prazo = datetime(ano, mes, 1)
-                        cond.tempo_restante = (data_prazo - datetime.now()).days
-                    # Caso o prazo seja no formato N dias
-                    elif 'dias' in prazo_texto and 'antes' not in prazo_texto:
-                        dias = int(re.search(r'\d+', prazo_texto).group())
-                        # data_prazo = data_carimbo + timedelta(days=dias)
-                        # cond.tempo_restante = prazo - (datetime.now() - datetime.strptime(licenca.data_carimbo, '%d/%m/%Y')).days
-                        if (cond.tem_oficio == 'True') and (cond.data_oficio is not None):
-                            # Converter cond.data_oficio para o formato desejado "dd/mm/yyyy", se necessário
-                            if '-' in cond.data_oficio:  # Verifica se o formato está como "yyyy-mm-dd"
-                                cond.data_oficio = datetime.strptime(cond.data_oficio, '%Y-%m-%d').strftime('%d/%m/%Y')
-                            
-                            # Converter cond.data_oficio para um objeto datetime para calcular o tempo restante
-                            data_oficio = datetime.strptime(cond.data_oficio, '%d/%m/%Y')
-                            
-                            # Calcula o tempo restante
-                            cond.tempo_restante = dias - (datetime.now() - data_oficio).days
-                        else:
-                            # Extrair apenas a parte da data antes de converter
-                            data_somente = licenca.data_carimbo.split(' ')[0]
-                            cond.tempo_restante = dias - (datetime.now() - datetime.strptime(data_somente, '%d/%m/%Y')).days
+                        # Converter cond.data_oficio para um objeto datetime para calcular o tempo restante
+                        data_oficio = datetime.strptime(cond.data_oficio, '%d/%m/%Y')
 
-                    # Caso o prazo seja N dias antes da data de validade
-                    elif 'dias' in prazo_texto and 'antes' in prazo_texto:
-                        dias = int(re.search(r'\d+', prazo_texto).group())
-                        # data_prazo = data_validade - timedelta(days=dias)
-                        # pegar somente o numero inicial de licenca.validade
-                        validade_em_dias = int(re.search(r'\d+', licenca.validade).group())
-                        # cond.tempo_restante = validade_em_dias - 120 - (datetime.now() - datetime.strptime(licenca.data_carimbo, '%d/%m/%Y')).days
+                        # Calcula o tempo restante
+                        cond.tempo_restante = dias - (datetime.now() - data_oficio).days
+                    else:
                         # Extrair apenas a parte da data antes de converter
                         data_somente = licenca.data_carimbo.split(' ')[0]
-                        cond.tempo_restante = validade_em_dias - 120 - (datetime.now() - datetime.strptime(data_somente, '%d/%m/%Y')).days
+                        cond.tempo_restante = dias - (datetime.now() - datetime.strptime(data_somente, '%d/%m/%Y')).days
 
+                elif 'dias' in prazo_texto:
+                    dias = int(re.search(r'\d+', prazo_texto).group())
+                    # data_prazo = data_validade - timedelta(days=dias)
+                    # pegar somente o numero inicial de licenca.validade
+                    validade_em_dias = int(re.search(r'\d+', licenca.validade).group())
+                    # cond.tempo_restante = validade_em_dias - 120 - (datetime.now() - datetime.strptime(licenca.data_carimbo, '%d/%m/%Y')).days
+                    # Extrair apenas a parte da data antes de converter
+                    data_somente = licenca.data_carimbo.split(' ')[0]
+                    cond.tempo_restante = validade_em_dias - 120 - (datetime.now() - datetime.strptime(data_somente, '%d/%m/%Y')).days
 
-                    # print(f"Condicionante: {cond.descricao}")
-                    # print(f"Prazo: {cond.prazo}")
-                    # print(f"Tempo restante: {cond.tempo_restante}")
+                
+                            # print(f"Condicionante: {cond.descricao}")
+                            # print(f"Prazo: {cond.prazo}")
+                            # print(f"Tempo restante: {cond.tempo_restante}")
 
     return licenca.condicionantes
 
@@ -698,16 +681,17 @@ def condicionantes_preenchidas(file_id):
     if licenca is None:
         return "Licença não encontrada", 404
 
-    # Verificar se todas as condicionantes possuem o prazo preenchido
-    for cond in licenca.condicionantes:
-        if cond.prazo is None or cond.prazo == '' or cond.prazo == 'N/A' or cond.prazo == 'None':
-            # Se alguma condicionante não tiver o prazo preenchido, retorna False
-            # print("Condicao nao preenchida")
-            return 'False'
-
-    # Se todas as condicionantes tiverem o prazo preenchido, retorna True
-    # print("Condicao preenchida")
-    return 'True'
+    return next(
+        (
+            'False'
+            for cond in licenca.condicionantes
+            if cond.prazo is None
+            or cond.prazo == ''
+            or cond.prazo == 'N/A'
+            or cond.prazo == 'None'
+        ),
+        'True',
+    )
 
 
 def atualizar_situacao_condicionantes(licenca):
@@ -716,11 +700,11 @@ def atualizar_situacao_condicionantes(licenca):
             tempo_restante = int(cond.tempo_restante)
             if cond.prazo is not None and cond.prazo not in ['N/A', 'None', '']:
                 if cond.cumprida == 'False' or cond.cumprida is False:
-                    if 'dias' in cond.prazo and 'antes' not in cond.prazo:
-                        prazo = int(re.search(r'\d+', cond.prazo).group())
-                    else:
-                        prazo = 121  # valor padrão
-
+                    prazo = (
+                        int(re.search(r'\d+', cond.prazo).group())
+                        if 'dias' in cond.prazo and 'antes' not in cond.prazo
+                        else 121
+                    )
                     if prazo > 0 and prazo <= 120:
                         if tempo_restante <= 15 and tempo_restante > 0:
                             cond.situacao = 'vermelho'
@@ -728,7 +712,7 @@ def atualizar_situacao_condicionantes(licenca):
                             cond.situacao = 'amarelo'
                         elif tempo_restante > 30:
                             cond.situacao = 'verde'
-                        elif tempo_restante <= 0:
+                        else:
                             cond.situacao = 'roxo'
                     elif prazo > 120:
                         if tempo_restante <= 30 and tempo_restante > 0:
@@ -737,7 +721,7 @@ def atualizar_situacao_condicionantes(licenca):
                             cond.situacao = 'amarelo'
                         elif tempo_restante > 60:
                             cond.situacao = 'verde'
-                        elif tempo_restante <= 0:
+                        else:
                             cond.situacao = 'roxo'
                 else:
                     cond.situacao = 'cumprida'
@@ -753,19 +737,21 @@ def condicionantes_vencendo(file_id):
     licenca = parse_licenca(licenca_string)
     if licenca is None:
         return "Licença não encontrada", 404
-    
+
     licenca.condicionantes = tempo_restante_condicionantes(licenca, file_id)
-    
+
     # Atualizar a situação das condicionantes
     licenca.condicionantes = atualizar_situacao_condicionantes(licenca)
     salvar_dicionarios()
 
     situacao = ''
-    contador_condicionantes_cumpridas = sum(1 for cond in licenca.condicionantes if cond.situacao == 'cumprida')
+    contador_condicionantes_cumpridas = sum(
+        cond.situacao == 'cumprida' for cond in licenca.condicionantes
+    )
 
     if contador_condicionantes_cumpridas == len(licenca.condicionantes):
         return 'concluida'
-    
+
     # Verificar a situação mais crítica
     for cond in licenca.condicionantes:
         if cond.situacao in ['vermelho', 'amarelo', 'verde', 'roxo', 'sem_prazo']:
@@ -779,7 +765,7 @@ def condicionantes_vencendo(file_id):
                 situacao = 'verde'
             elif cond.situacao == 'sem_prazo' and situacao not in ['roxo', 'vermelho', 'amarelo', 'verde']:
                 situacao = 'concluida'
-    
+
     return situacao
 
 
@@ -787,22 +773,19 @@ def condicionantes_vencendo(file_id):
 
 def gerar_relatorio_excel():
     licencas = []
-    
+
     for file_id, file_data in Config.ARQUIVOS_ENTREGUES.items():
-        licenca = parse_licenca(file_data.get('data'))
-        if licenca:
+        if licenca := parse_licenca(file_data.get('data')):
             licencas.append({
                 "Nome da Licença": file_data['nome'].split('.docx')[0],
                 "Data de Entrega": file_data['data_carimbo'],
                 "Dias Restantes": file_data['tempo_restante']
             })
-    
+
     # Ordenar as licenças por Dias Restantes em ordem crescente
     licencas = sorted(licencas, key=lambda x: x['Dias Restantes'])
-    
-    # Converter para DataFrame
-    df = pd.DataFrame(licencas)
-    return df
+
+    return pd.DataFrame(licencas)
 
 def salvar_relatorio_mongodb(df):
     global collection
@@ -1051,3 +1034,75 @@ def criar_dashboard():
     salvar_dashboard_no_mongodb(buffer.getvalue())
 
     return 'Imagem do dashboard salva no MongoDB com sucesso!'
+
+
+
+def mover_oficio_para_entregues(file_id):
+    licenca_original_id = encontrar_licenca_com_numero_de_processo(
+        Config.ARQUIVOS_NAO_ENTREGUES[file_id]['numero_processo']
+    )
+
+    if licenca_original_id is None:
+        print("Erro ao mover arquivo: Licença não encontrada")
+        return
+
+    licenca_original = parse_licenca(Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'])
+    if licenca_original is None or not isinstance(licenca_original, Licenca):
+        print("Erro ao mover arquivo: Licença inválida")
+        return
+
+    licenca_copia = licenca_original.copiar()
+    oficio = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
+
+    if oficio is not None and isinstance(oficio, Licenca):
+        atualizar_condicionantes(oficio, licenca_copia, request.form.get('data_carimbo'))
+        Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'] = repr(licenca_copia)
+    
+    Config.ARQUIVOS_NAO_ENTREGUES[file_id]['eh_oficio_entregue'] = True
+    salvar_dicionarios()
+
+def atualizar_condicionantes(oficio, licenca_copia, data_carimbo):
+    for cond in oficio.condicionantes:
+        for cond2 in licenca_copia.condicionantes:
+            if cond2.numero.lstrip('0') == cond.numero.lstrip('0'):
+                cond2.tem_oficio = True
+                cond2.descricao = cond.descricao
+                cond2.prazo = cond.prazo
+                cond2.data_oficio = data_carimbo
+                break
+
+def verificar_condicionantes_completas(file_id):
+    return Config.ARQUIVOS_NAO_ENTREGUES[file_id].get('condicionantes_verify') == "COMPLETAS"
+
+def processar_arquivo_entregue(file_id):
+    data_carimbo = request.form.get('data_carimbo')
+    if data_carimbo:
+        licenca = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
+        if licenca is not None and isinstance(licenca, Licenca):
+            atualizar_licenca_com_dados(file_id, licenca, data_carimbo)
+        else:
+            print("Erro ao carimbar arquivo: Faça novamente")
+
+def atualizar_licenca_com_dados(file_id, licenca, data_carimbo):
+    Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data_carimbo'] = (
+        datetime.strptime(f"{data_carimbo} 00:00:00", '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
+    )
+
+    licenca.data_carimbo = datetime.strptime(data_carimbo, '%Y-%m-%d').strftime('%d/%m/%Y')
+    licenca.tempo_restante = calcula_tempo_restante(licenca)
+    licenca.prazo_renovacao = licenca.tempo_restante - 120 if licenca.tempo_restante is not None else "N/A"
+    licenca.data_renovacao = (
+        (datetime.strptime(data_carimbo, '%Y-%m-%d') + timedelta(days=licenca.prazo_renovacao)).strftime('%d/%m/%Y')
+        if licenca.tempo_restante is not None else "N/A"
+    )
+    licenca.data_vencimento = (
+        (datetime.strptime(data_carimbo, '%Y-%m-%d') + timedelta(days=licenca.tempo_restante)).strftime('%d/%m/%Y')
+        if licenca.tempo_restante is not None else "N/A"
+    )
+
+    Config.ARQUIVOS_ENTREGUES[file_id] = Config.ARQUIVOS_NAO_ENTREGUES.pop(file_id)
+    Config.ARQUIVOS_ENTREGUES[file_id]['tempo_restante'] = licenca.tempo_restante
+    Config.ARQUIVOS_ENTREGUES[file_id]['prazo_renovacao'] = licenca.prazo_renovacao
+    Config.ARQUIVOS_ENTREGUES[file_id]['data_renovacao'] = licenca.data_renovacao
+    Config.ARQUIVOS_ENTREGUES[file_id]['data_vencimento'] = licenca.data_vencimento
+    Config.ARQUIVOS_ENTREGUES[file_id]['data'] = repr(licenca)

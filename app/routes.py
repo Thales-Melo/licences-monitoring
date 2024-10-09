@@ -3,7 +3,7 @@ import datetime
 import logging
 from flask import Blueprint, flash, redirect, render_template, url_for, session, request
 from app.auth import credentials_to_dict
-from app.utils import atualizar_situacao_condicionantes, carregar_dicionarios, enviar_email, salvar_dicionarios, executar_carregar_licencas, gerar_relatorio_excel, ordenar_arquivos, filtrar_e_ordenar, paginate, salvar_relatorio_mongodb, tempo_restante_condicionantes, update_order, listar_arquivos_pasta, parse_licenca, Licenca, calcula_tempo_restante, get_validade_em_dias, condicionantes_preenchidas, condicionantes_vencendo, verificar_se_oficio, encontrar_licenca_com_numero_de_processo
+from app.utils import atualizar_situacao_condicionantes, carregar_dicionarios, enviar_email, mover_oficio_para_entregues, processar_arquivo_entregue, salvar_dicionarios, executar_carregar_licencas, gerar_relatorio_excel, ordenar_arquivos, filtrar_e_ordenar, paginate, salvar_relatorio_mongodb, tempo_restante_condicionantes, update_order, listar_arquivos_pasta, parse_licenca, Licenca, calcula_tempo_restante, get_validade_em_dias, condicionantes_preenchidas, condicionantes_vencendo, verificar_condicionantes_completas, verificar_se_oficio, encontrar_licenca_com_numero_de_processo
 import google.oauth2.credentials
 import googleapiclient.discovery
 from datetime import datetime, timedelta
@@ -327,15 +327,6 @@ def index():  # sourcery skip: use-fstring-for-concatenation
     salvar_dicionarios()
     carregar_dicionarios()
 
-    # Inicializa variáveis se não estiverem definidas
-    # if 'Config.ARQUIVOS_NAO_ENTREGUES' not in globals():
-    #     print("não tava definido")
-    #     Config.ARQUIVOS_NAO_ENTREGUES = {}
-    # if 'Config.ARQUIVOS_ENTREGUES' not in globals():
-    #     Config.ARQUIVOS_ENTREGUES = {}
-    # if 'Config.ARQUIVOS_ENCERRADOS' not in globals():
-    #     Config.ARQUIVOS_ENCERRADOS = {}
-
     # Resto do código
     credentials = google.oauth2.credentials.Credentials(**session['credentials'])
     drive_service = googleapiclient.discovery.build('drive', 'v3', credentials=credentials)
@@ -383,7 +374,7 @@ def index():  # sourcery skip: use-fstring-for-concatenation
 
 
     executar_carregar_licencas()
-    salvar_dicionarios()
+    # salvar_dicionarios()
     # for file_id, file_data in Config.ARQUIVOS_NAO_ENTREGUES.items():
     #     licenca = parse_licenca(file_data.get('data'))
     #     if licenca and isinstance(licenca, Licenca):
@@ -517,70 +508,19 @@ def index():  # sourcery skip: use-fstring-for-concatenation
 
 
 @main.route('/mover_arquivo/<file_id>', methods=['POST'])
-def mover_arquivo(file_id):  # sourcery skip: use-fstring-for-concatenation
-    salvar_dicionarios()
+def mover_arquivo(file_id):
+    # salvar_dicionarios()
 
-    if (verificar_se_oficio(file_id)):
-        # Atualiza a licença correspondente com as condicionantes do ofício
-        licenca_original_id = encontrar_licenca_com_numero_de_processo(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['numero_processo'])
-        if licenca_original_id is not None:
-            licenca_original = parse_licenca(Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'])
-            if licenca_original is not None and isinstance(licenca_original, Licenca):
-                # Atualiza a licença com as condicionantes do ofício
-                licenca_copia = licenca_original.copiar()
-                oficio = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
-                if oficio is not None and isinstance(oficio, Licenca):
-                    for cond in oficio.condicionantes:
-                        for cond2 in licenca_copia.condicionantes:
-                            if cond2.numero.lstrip('0') == cond.numero.lstrip('0'):
-                                cond2.tem_oficio = True
-                                cond2.descricao = cond.descricao
-                                cond2.prazo = cond.prazo
-                                cond2.data_oficio = request.form.get('data_carimbo')
-                                break
-                    Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'] = repr(licenca_copia)              
-
-            else:
-                print("Erro ao mover arquivo: Licença não encontrada")
-        else:
-            print("Erro ao mover arquivo: Licença não encontrada")
-
-
-        Config.ARQUIVOS_NAO_ENTREGUES[file_id]['eh_oficio_entregue'] = True
+    if verificar_se_oficio(file_id):
+        mover_oficio_para_entregues(file_id)
         salvar_dicionarios()
+        carregar_dicionarios()
         return redirect(url_for('main.index'))
 
-
     if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
-        # Verifica se as condicionantes estão completas
-        if Config.ARQUIVOS_NAO_ENTREGUES[file_id].get('condicionantes_verify') == "COMPLETAS":
-            if data_carimbo := request.form.get('data_carimbo'):
-                # Adiciona o arquivo ao dicionário de entregues
-                Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data_carimbo'] = datetime.strptime(data_carimbo + " 00:00:00", '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-
-                # Atualiza o atributo data_carimbo da licença
-                licenca = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
-                if licenca is not None and isinstance(licenca, Licenca):
-                    # Move o arquivo para o dicionário de entregues
-                    Config.ARQUIVOS_ENTREGUES[file_id] = Config.ARQUIVOS_NAO_ENTREGUES.pop(file_id)
-                    salvar_dicionarios()
-                    # Atualiza os atributos da licença
-                    licenca.data_carimbo = datetime.strptime(data_carimbo, '%Y-%m-%d').strftime('%d/%m/%Y')
-                    licenca.tempo_restante = calcula_tempo_restante(licenca)
-                    Config.ARQUIVOS_ENTREGUES[file_id]['tempo_restante'] = licenca.tempo_restante
-                    licenca.prazo_renovacao = licenca.tempo_restante - 120 if licenca.tempo_restante is not None else "N/A"
-                    licenca.data_renovacao = (datetime.strptime(data_carimbo, '%Y-%m-%d') + timedelta(days=licenca.prazo_renovacao)).strftime('%d/%m/%Y') if licenca.tempo_restante is not None else "N/A"
-                    licenca.data_vencimento = (datetime.strptime(data_carimbo, '%Y-%m-%d') + timedelta(days=licenca.tempo_restante)).strftime('%d/%m/%Y') if licenca.tempo_restante is not None else "N/A"
-                    Config.ARQUIVOS_ENTREGUES[file_id]['prazo_renovacao'] = licenca.prazo_renovacao
-                    Config.ARQUIVOS_ENTREGUES[file_id]['data_renovacao'] = licenca.data_renovacao
-                    Config.ARQUIVOS_ENTREGUES[file_id]['data_vencimento'] = licenca.data_vencimento
-                    Config.ARQUIVOS_ENTREGUES[file_id]['data'] = repr(licenca)
-
-                else:
-                    print("Erro ao carimbar arquivo: Faça novamente")
-                salvar_dicionarios()
+        if verificar_condicionantes_completas(file_id):
+            processar_arquivo_entregue(file_id)
         else:
-            # Adiciona uma mensagem flash para exibir no front-end
             flash("Preencha o campo 'PRAZO' de todas as condicionantes antes de enviar a licença para monitoramento.", "warning")
 
     salvar_dicionarios()
