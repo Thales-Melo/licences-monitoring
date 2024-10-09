@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Licença</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/style_detalhes.css"> <!-- Referência ao novo arquivo CSS -->
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Detalhes da Licença</h1>
+        
+        {% if licenca %}
+        <div class="card mb-4">
+            <div class="card-header">
+                Informações Gerais
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <p><strong>Requerente:</strong> {{ licenca['requerente'] }}</p>
+                        <p><strong>Processo n°:</strong> {{ licenca['numero_processo'] }}</p>
+                        <p><strong>Tipo:</strong> {{ tipo_licenca }}</p>
+                        <p><strong>Número:</strong> {{ numero_licenca }}</p>
+                        <p><strong>CNPJ:</strong> {{ licenca['cnpj'] }}</p>
+                        <p><strong>Endereço:</strong> {{ licenca['endereco'] }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <p><strong>Atividade:</strong> {{ licenca['atividade'] }}</p>
+                        <p><strong>Classe:</strong> {{ licenca['classe'] }}</p>
+                        <p><strong>Porte:</strong> {{ licenca['porte'] }}</p>
+                        <p><strong>Potencial Poluidor:</strong> {{ licenca['potencial_poluidor'] }}</p>
+                        <p><strong>Coordenadas:</strong> {{ licenca['coordenadas'] }}</p>
+                        <p><strong>Validade:</strong> {{ licenca['validade'] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- dias- -->
+        
+            <input type="hidden" name="file_id" value="{{ file_id }}">
+            <div class="card">
+                <div class="card-header">
+                    Condicionantes
+                </div>
+                <div class="card-body">
+                    <ol class="list-group">
+                        {% if tipo_tabela == 'entregues' %}
+                        <li class="list-group-item card-carimbo">
+                            <strong>Data de Carimbo:</strong> 
+                            <span class="badge data-carimbo">{{ licenca['data_carimbo'] }}</span>
+                        </li>
+                        {% endif %}
+                        {% for cond in licenca['condicionantes'] %}
+                        <li class="list-group-item {% if tipo_tabela == 'entregues' and cond['situacao'] != 'sem_prazo' %}dias-{{ cond['situacao'] }}{% endif %}">
+                            <p><strong>Número:</strong> {{ cond['numero'] }}</p>
+                            <p><strong>Descrição:</strong> {{ cond['descricao'] }}</p>
+                            <input type="hidden" name="cond_index_{{ loop.index }}" value="{{ loop.index }}">
+                            {% if cond['tem_oficio'] == 'True' %}
+                                <p><strong>Data Ofício:</strong> {{ cond['data_oficio'] }}</p>
+                            {% endif %}
+                            {% if cond['prazo'] is none or cond['prazo'] == 'None' %}
+                                <p><strong>Prazo:</strong> Não definido</p>                              
+                            {% else %}
+                                <p><strong>Prazo:</strong> {{ cond['prazo'] }}</p>
+                            {% endif %}
+
+                            <p><strong>
+                                {% if tipo_tabela == 'entregues' %}
+                                    {% if cond['tempo_restante'] not in [None, 'None'] %}
+                                        {% if cond['cumprida'] not in [False, 'False'] %}
+                                            <span class="text-success">CONDICIONANTE CUMPRIDA</span>
+                                        {% else %}
+                                            Tempo restante: <span class="text-black">{{ cond['tempo_restante'] }} dias</span>
+                                            
+                                            <!-- Formulário para enviar os dados -->
+                                            <form method="POST" action="{{ url_for('main.cumprir_condicionante') }}">
+                                                <input type="hidden" name="file_id" value="{{ file_id }}">
+                                                <input type="hidden" name="cond_index" value="{{ loop.index }}">
+                                                <input type="hidden" name="cond_cumprida" value="True">
+                                                
+                                                <!-- Botão para submeter o formulário -->
+                                                <button type="submit" class="btn btn-success mt-3">Condicionante Cumprida</button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </strong></p>      
+                            
+                            <!-- se a condicionante já tiver sido cumprida, mostra a data_cumprimento -->
+                            {% if cond['cumprida'] not in [False, 'False'] %}
+                                <p><strong>Data de Cumprimento:</strong> {{ cond['data_cumprimento'] }}</p>
+                            {% endif %}
+
+                            
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+        </form>
+        
+        {% else %}
+        <div class="alert alert-warning" role="alert">
+            <strong>Aviso:</strong> Licença não encontrada.
+        </div>
+        {% endif %}
+        
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary mt-3">Voltar</a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="../static/js/script_detalhes.js"></script>
+</body>
+</html>

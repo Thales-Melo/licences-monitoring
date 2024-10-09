@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Diretórios de virtual environment
+venv/
+env/
+
+# Arquivos de configuração do ambiente
+.env
+*.env
+
+# Logs
+logs/
+*.log
+*.out
+*.err
+
+# Configurações de IDEs/editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos de banco de dados
+*.sqlite3
+*.db
+
+# Arquivos de segurança e credenciais
+credentials.json
+cert.pem
+key.pem
+
+# Arquivos e diretórios temporários
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Arquivos de dependências instaladas via pip
+*.egg-info/
+dist/
+build/
+
+# Arquivos de cache do Flask
+instance/
+
+# .yaml files
+*.yaml

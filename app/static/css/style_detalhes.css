@@ -1,0 +1,92 @@
+body {
+    background-color: #f4f7f6;
+    font-family: 'Arial', sans-serif;
+}
+.container {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.card-header {
+    background-color: #652890;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-bottom: 2px solid #0056b3;
+}
+.card {
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.list-group-item {
+    border: none;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: #e9ecef;
+}
+.btn-primary {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #004085;
+}
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeeba;
+}
+.alert-warning strong {
+    color: #856404;
+}
+.text-muted {
+    color: #6c757d !important;
+}
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+/* Estilização para o card de Data de Carimbo */
+.card-carimbo {
+    background-color: #f8f9fa; /* Fundo mais claro */
+    border: 2px solid #890e0e; /* Borda azul para destacar o card */
+    border-radius: 10px; /* Bordas arredondadas */
+    padding: 15px; /* Espaçamento interno maior */
+    margin-bottom: 20px; /* Espaçamento inferior entre os itens */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Sombra para destacar o card */
+}
+
+/* Estilização para a data de carimbo */
+.data-carimbo {
+    font-size: 1.25rem; /* Aumenta o tamanho da fonte */
+    background-color: #890e0e; /* Fundo azul */
+    color: #fff; /* Texto branco */
+    padding: 10px 15px; /* Espaçamento interno */
+    border-radius: 8px; /* Cantos arredondados */
+    font-weight: bold; /* Texto em negrito */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra no badge */
+}
+
+/* Configurações de fundo */
+.dias-verde {
+    background-color: #6dc983 !important; /* Adicione !important para garantir que a cor seja aplicada */
+    color: #000000;
+}
+.dias-amarelo {
+    background-color: #dbc067 !important; /* Adicione !important para garantir que a cor seja aplicada */
+    color: #000000;
+}
+.dias-vermelho {
+    background-color: #e35863 !important; /* Adicione !important para garantir que a cor seja aplicada */
+    color: #000000;
+}
+.dias-roxo {
+    background-color: #a25cd4 !important; /* Fundo roxo claro */
+    color: #000000; /* Texto roxo escuro */
+}
+.text-black {
+    color: black;
+}

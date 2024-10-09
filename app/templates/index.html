@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licenças</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/style_index.css"> <!-- Referência ao novo arquivo CSS -->
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">Monitoramento de Licenças</h1>
+        <!-- Display Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+                <div class="container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Atualizar Button -->
+        <form action="{{ url_for('main.atualizar') }}" method="post">
+            <button type="submit" class="btn btn-primary mb-4">Atualizar</button>
+        </form>
+
+        <!-- Campo de Busca -->
+        <div class="mb-4">
+            <input type="text" id="search-input" class="form-control" placeholder="Buscar em todas as licenças..." onkeyup="searchLicenses()">
+        </div>
+
+        <!-- Licenças Não Entregues -->
+        <h2>Não Entregues</h2>
+        <div class="table-responsive">
+            <table id="nao-entregues-table" class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='numero_processo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('NE_criterio') == 'numero_processo' %}active{% endif %}">
+                                Processo n°
+                                <span class="arrow up {% if session.get('NE_ordem') == 'asc' and session.get('NE_criterio') == 'numero_processo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('NE_ordem') == 'desc' and session.get('NE_criterio') == 'numero_processo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='numero', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('NE_criterio') == 'numero' %}active{% endif %}">
+                                Licença n°
+                                <span class="arrow up {% if session.get('NE_ordem') == 'asc' and session.get('NE_criterio') == 'numero' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('NE_ordem') == 'desc' and session.get('NE_criterio') == 'numero' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='tipo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('NE_criterio') == 'tipo' %}active{% endif %}">
+                                Tipo
+                                <span class="arrow up {% if session.get('NE_ordem') == 'asc' and session.get('NE_criterio') == 'tipo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('NE_ordem') == 'desc' and session.get('NE_criterio') == 'tipo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='nome', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('NE_criterio') == 'nome' %}active{% endif %}">
+                                Nome da Licença
+                                <span class="arrow up {% if session.get('NE_ordem') == 'asc' and session.get('NE_criterio') == 'nome' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('NE_ordem') == 'desc' and session.get('NE_criterio') == 'nome' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <!-- <th>
+                            <a href="{{ url_for('main.ordenar', criterio='condicionantes_verify', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('NE_criterio') == 'nome' %}active{% endif %}">
+                                Preenchimento das Condicionantes
+                                <span class="arrow up {% if session.get('NE_ordem') == 'asc' and session.get('NE_criterio') == 'condicionantes_verify' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('NE_ordem') == 'desc' and session.get('NE_criterio') == 'condicionantes_verify' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th> -->
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file_id, file_data in paginacao_nao_entregues %}
+                        {% if not file_data.eh_oficio_entregue %}
+                        <tr data-type="nao-entregues">
+                            <td>{{ file_data.numero_processo }}</td>
+                            <td>{{ file_data.numero }}</td>
+                            <td>{{ file_data.tipo }}</td>
+                            <td>{{ file_data.nome[:-5] }}</td>
+                            <!-- <td>{{ file_data.condicionantes_verify }}</td> -->
+                            <td>
+                                <!-- Formulário para mover arquivo para entregues com data -->
+                                <form action="{{ url_for('main.mover_arquivo', file_id=file_id) }}" method="post" style="display:inline;" onsubmit="return confirmarMovimento();">
+                                    <input type="date" name="data_carimbo" required>
+                                    <button type="submit" class="btn btn-primary btn-sm">Mover para entregues</button>
+                                    <a href="{{ url_for('main.detalhes', file_id=file_id) }}" class="btn btn-info btn-sm">Detalhes</a>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+<!-- Paginação para Licenças Não Entregues -->
+<nav aria-label="Navegação de página para não entregues">
+    <ul class="pagination justify-content-center">
+        {% if page_nao_entregues > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues-1, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='true') }}" aria-label="Anterior">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        {% endif %}
+        {% for i in range(1, (total_nao_entregues // ITEMS_PER_PAGE) + 2) %}
+            <li class="page-item {% if i == page_nao_entregues %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=i, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='true') }}">{{ i }}</a>
+            </li>
+        {% endfor %}
+        {% if page_nao_entregues < (total_nao_entregues // ITEMS_PER_PAGE) + 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues+1, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='nao_entregues', cor=cor if cor else 'todas', in_navigation='true') }}" aria-label="Próximo">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+        {% set url_ordenar = url_for('main.ordenar', criterio='numero_processo', ordem=('desc' if session.get('ordem') == 'desc' else 'desc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') %}
+
+        <!-- Licenças Entregues -->
+        <h2>Monitoramento</h2>
+        <form action="{{ url_for('main.enviar_relatorio') }}" method="post">
+            <button type="submit" class="btn btn-info mb-4">Enviar Relatório</button>
+        </form>
+        <form action="{{ url_ordenar }}" method="get">
+            <div class="form-group">
+                <label for="cor">Filtrar por cor:</label>
+                <select id="cor" name="cor" class="form-control">
+                    <option value="todas">Todas</option>
+                    <option value="verde" {% if cor == 'verde' %}selected{% endif %}>Verde</option>
+                    <option value="amarelo" {% if cor == 'amarelo' %}selected{% endif %}>Amarelo</option>
+                    <option value="vermelho" {% if cor == 'vermelho' %}selected{% endif %}>Vermelho</option>
+                    <option value="roxo" {% if cor == 'roxo' %}selected{% endif %}>Roxo</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary mb-4">Filtrar</button>
+        </form>
+        <div class="table-responsive">
+            <table id="entregues-table" class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='numero_processo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'numero_processo' %}active{% endif %}">
+                                Processo n°
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'numero_processo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'numero_processo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='numero', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'numero' %}active{% endif %}">
+                                Licença n°
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'numero' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'numero' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='tipo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'tipo' %}active{% endif %}">
+                                Tipo
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'tipo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'tipo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='nome', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'nome' %}active{% endif %}">
+                                Nome da Licença
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'nome' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'nome' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='data_carimbo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'data_carimbo' %}active{% endif %}">
+                                Data de Carimbo
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'data_carimbo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'data_carimbo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='tempo_restante', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'tempo_restante' %}active{% endif %}">
+                                Dias Restantes
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'tempo_restante' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'tempo_restante' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='data_renovacao', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'data_renovacao' %}active{% endif %}">
+                                Data de Renovação
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'data_renovacao' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'data_renovacao' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='prazo_renovacao', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'prazo_renovacao' %}active{% endif %}">
+                                Prazo de Renovação
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'prazo_renovacao' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'prazo_renovacao' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='data_vencimento', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'data_vencimento' %}active{% endif %}">
+                                Data de Vencimento
+                                <span class="arrow up {% if session.get('E_ordem') == 'asc' and session.get('E_criterio') == 'data_vencimento' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('E_ordem') == 'desc' and session.get('E_criterio') == 'data_vencimento' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file_id, file_data in paginacao_entregues %}
+                    <tr data-type="entregues"
+                        class="{% if file_data['situacao_condicionantes'] == 'verde' %}dias-verde
+                               {% elif file_data['situacao_condicionantes'] == 'amarelo' %}dias-amarelo
+                               {% elif file_data['situacao_condicionantes'] == 'vermelho' %}dias-vermelho
+                               {% else %}dias-roxo{% endif %}">
+                        <td>{{file_data.numero_processo}}</td>
+                        <td>{{file_data.numero}}</td>
+                        <td>{{file_data.tipo}}</td>
+                        <td>{{file_data.nome[:-5] }}</td>
+                        <td>{{file_data.data_carimbo}}</td>
+                        <td class="dias-restantes">{{file_data.tempo_restante}}</td>
+                        <td>{{file_data.data_renovacao}}</td>
+                        <td>{{file_data.prazo_renovacao}}</td>
+                        <td>{{file_data.data_vencimento}}</td>
+                        <td>
+                            <form action="{{ url_for('main.descarimbar_arquivo', file_id=file_id) }}" method="post" style="display:inline;" onsubmit="return confirmarDescarimbamento();">
+                                <button type="submit" class="btn btn-warning btn-sm">Descarimbar</button>
+                            </form>
+                            <form action="{{ url_for('main.encerrar', file_id=file_id) }}" method="post" style="display:inline;" onsubmit="return confirmarEncerramento();">
+                                <button type="submit" class="btn btn-danger btn-sm">Arquivar</button>
+                                <a href="{{ url_for('main.detalhes', file_id=file_id) }}" class="btn btn-info btn-sm">Detalhes</a>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação para Licenças Entregues -->
+        <nav aria-label="Navegação de página para entregues">
+            <ul class="pagination justify-content-center">
+                {% if page_entregues > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues, page_entregues=page_entregues-1, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='true') }}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                {% for i in range(1, (total_entregues // ITEMS_PER_PAGE) + 2) %}
+                    <li class="page-item {% if i == page_entregues %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues, page_entregues=i, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='true') }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+                {% if page_entregues < (total_entregues // ITEMS_PER_PAGE) + 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues, page_entregues=page_entregues+1, page_encerradas=page_encerradas, tabela='entregues', cor=cor if cor else 'todas', in_navigation='true') }}" aria-label="Próximo">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <!-- Licenças Arquivadas -->
+        <h2>Arquivadas</h2>
+        <div class="table-responsive">
+            <table id="arquivadas-table" class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='numero_processo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'numero_processo' %}active{% endif %}">
+                                Processo n°
+                                <span class="arrow up {% if session.get('EN_ordem') == 'asc' and session.get('EN_criterio') == 'numero_processo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('EN_ordem') == 'desc' and session.get('EN_criterio') == 'numero_processo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='numero', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'numero' %}active{% endif %}">
+                                Licença n°
+                                <span class="arrow up {% if session.get('EN_ordem') == 'asc' and session.get('EN_criterio') == 'numero' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('EN_ordem') == 'desc' and session.get('EN_criterio') == 'numero' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='tipo', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'tipo' %}active{% endif %}">
+                                Tipo
+                                <span class="arrow up {% if session.get('EN_ordem') == 'asc' and session.get('EN_criterio') == 'tipo' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('EN_ordem') == 'desc' and session.get('EN_criterio') == 'tipo' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='nome', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'nome' %}active{% endif %}">
+                                Nome da Licença
+                                <span class="arrow up {% if session.get('EN_ordem') == 'asc' and session.get('EN_criterio') == 'nome' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('EN_ordem') == 'desc' and session.get('EN_criterio') == 'nome' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+            
+                        <th>
+                            <a href="{{ url_for('main.ordenar', criterio='data_arquivada', ordem=('desc' if session.get('ordem') == 'asc' else 'asc'), page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='false') }}"
+                               class="sortable-link column {% if session.get('criterio') == 'data_arquivada' %}active{% endif %}">
+                                Data de Arquivamento
+                                <span class="arrow up {% if session.get('EN_ordem') == 'asc' and session.get('EN_criterio') == 'data_arquivada' %}highlighted{% endif %}"></span>
+                                <span class="arrow down {% if session.get('EN_ordem') == 'desc' and session.get('EN_criterio') == 'data_arquivada' %}highlighted{% endif %}"></span>
+                            </a>
+                        </th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file_id, file_data in paginacao_encerradas %}
+                    <tr data-type="arquivadas">
+                        <td>{{file_data.numero_processo}}</td>
+                        <td>{{file_data.numero}}</td>
+                        <td>{{file_data.tipo}}</td>
+                        <td>{{file_data.nome[:-5] }}</td>
+                        <td>{{file_data.data_arquivada}}</td>
+                        <td>
+                            <!-- <form action="{{ url_for('main.retomar', file_id=file_id) }}" method="post" style="display:inline;" onsubmit="return confirmarDesarquivamento();">
+                                <button type="submit" class="btn btn-warning btn-sm">Retomar</button> -->
+                                <a href="{{ url_for('main.detalhes', file_id=file_id) }}" class="btn btn-info btn-sm">Detalhes</a>
+                            <!-- </form> -->
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação para Licenças Arquivadas -->
+        <nav aria-label="Navegação de página para arquivadas">
+            <ul class="pagination justify-content-center">
+                {% if page_encerradas > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas-1, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='true') }}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                {% for i in range(1, (total_encerradas // ITEMS_PER_PAGE) + 2) %}
+                    <li class="page-item {% if i == page_encerradas %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=i, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='true') }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+                {% if page_encerradas < (total_encerradas // ITEMS_PER_PAGE) + 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.ordenar', criterio=criterio_ordenacao, ordem=ordem, page_nao_entregues=page_nao_entregues, page_entregues=page_entregues, page_encerradas=page_encerradas+1, tabela='encerradas', cor=cor if cor else 'todas', in_navigation='true') }}" aria-label="Próximo">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="../static/js/script_index.js"></script>
+</body>
+</html>
