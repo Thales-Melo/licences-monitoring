@@ -7,7 +7,8 @@ main = Blueprint('main', __name__)
 
 credentials_info = json.loads(Config.GOOGLE_CLIENT_SECRETS)
 
-flow = Flow.from_client_secrets_file(
+# Usa `from_client_config` em vez de `from_client_secrets_file`
+flow = Flow.from_client_config(
     credentials_info,
     scopes=['https://www.googleapis.com/auth/drive'],
     redirect_uri=Config.REDIRECT_URI
