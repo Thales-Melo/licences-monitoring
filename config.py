@@ -1,17 +1,9 @@
 import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
-import json
-from google.oauth2 import service_account
 
 # Carrega as variáveis de ambiente do arquivo .env, se existir
 load_dotenv()
-
-# Pega a string do JSON da variável de ambiente
-google_credentials_json = os.getenv("GOOGLE_CLIENT_SECRETS")
-
-# Carrega a string JSON como um objeto Python
-credentials_info = json.loads(google_credentials_json)
 
 class Config:
     # Chave secreta para a aplicação Flask (busca da variável de ambiente)
@@ -28,8 +20,8 @@ class Config:
     # Diretório do script
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    # Usa as credenciais com a biblioteca do Google
-    GOOGLE_CLIENT_SECRETS = service_account.Credentials.from_service_account_info(credentials_info)
+    # Configurações do Google OAuth (busca das variáveis de ambiente ou usa caminho absoluto)
+    GOOGLE_CLIENT_SECRETS = os.getenv('GOOGLE_CLIENT_SECRETS')
     REDIRECT_URI = os.getenv('REDIRECT_URI')
 
     # Configurações de logging e segurança (somente para desenvolvimento local)
