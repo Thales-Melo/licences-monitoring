@@ -11,10 +11,15 @@ from datetime import datetime, timedelta
 from config import Config
 from google_auth_oauthlib.flow import Flow
 
+import json
+
 main = Blueprint('main', __name__)
 
-flow = Flow.from_client_secrets_file(
-    Config.GOOGLE_CLIENT_SECRETS,
+credentials_info = json.loads(Config.GOOGLE_CLIENT_SECRETS)
+
+# Usa `from_client_config` em vez de `from_client_secrets_file`
+flow = Flow.from_client_config(
+    credentials_info,
     scopes=['https://www.googleapis.com/auth/drive'],
     redirect_uri=Config.REDIRECT_URI
 )
@@ -204,30 +209,29 @@ def atualizar():
     novos_arquivos = []
 
     for file in files:
-        if file['name'].endswith('.docx') and 'OF' not in file['name']:
-            if file['id'] not in ids_existentes:
-                nome_parts = file['name'].split(' - ')
-                if len(nome_parts) == 3:
-                    numero, tipo, nome = nome_parts
-                else:
-                    numero, tipo, nome = "N/A", "N/A", file['name']
-                Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
-                    'numero': numero.strip(),
-                    'tipo': tipo.strip(),
-                    'nome': nome.strip(),
-                    'numero_processo': "N/A",
-                    'data_carimbo': "N/A",
-                    'tempo_restante': "N/A",
-                    'prazo_renovacao': "N/A",
-                    'data_renovacao': "N/A",
-                    'data_arquivada': "N/A",
-                    'data_vencimento': "N/A",
-                    'condicionantes_verify': "incompletas",
-                    'situacao_condicionantes': "N/A",
-                    'eh_oficio_entregue': False,
-                    'data': None
-                }
-                novos_arquivos.append(file['name'])
+        if file['name'].endswith('.docx') and 'OF' not in file['name'] and file['id'] not in ids_existentes:
+            nome_parts = file['name'].split(' - ')
+            if len(nome_parts) == 3:
+                numero, tipo, nome = nome_parts
+            else:
+                numero, tipo, nome = "N/A", "N/A", file['name']
+            Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
+                'numero': numero.strip(),
+                'tipo': tipo.strip(),
+                'nome': nome.strip(),
+                'numero_processo': "N/A",
+                'data_carimbo': "N/A",
+                'tempo_restante': "N/A",
+                'prazo_renovacao': "N/A",
+                'data_renovacao': "N/A",
+                'data_arquivada': "N/A",
+                'data_vencimento': "N/A",
+                'condicionantes_verify': "incompletas",
+                'situacao_condicionantes': "N/A",
+                'eh_oficio_entregue': False,
+                'data': None
+            }
+            novos_arquivos.append(file['name'])
 
     if novos_arquivos:
         salvar_dicionarios()
@@ -315,7 +319,7 @@ def filtrar_por_cor():
     )
 
 @main.route('/')
-def index():
+def index():  # sourcery skip: use-fstring-for-concatenation
 
     if 'credentials' not in session:
         return redirect(url_for('main.authorize'))
@@ -353,31 +357,29 @@ def index():
     for file in files:
         print(file['name'])
         print(file['id'])
-        if file['name'].endswith('.docx'):
-            if file['id'] not in Config.ARQUIVOS_NAO_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENCERRADOS:   
-                print("\nArquivo não encontrado")
-                print(file['name'])
-                print(file['id'])
-                # iterar sobre todos os dicionarios de arquivos e verificar se tem o mesmo numero de processo
-                # 
-
-                Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
-                    'numero': "N/A",
-                    'tipo': "N/A",
-                    'nome': "N/A",
-                    'numero_processo': "N/A",
-                    'data_carimbo': "N/A",
-                    'tempo_restante': "N/A",
-                    'prazo_renovacao': "N/A",
-                    'data_renovacao': "N/A",
-                    'data_arquivada': "N/A",
-                    'data_vencimento': "N/A",
-                    'condicionantes_verify': "incompletas",
-                    'situacao_condicionantes': "N/A",
-                    'eh_oficio_entregue': False,
-                    'data': None
-                }
-                # print(Config.ARQUIVOS_NAO_ENTREGUES[file['id']])
+        if file['name'].endswith('.docx') and (file['id'] not in Config.ARQUIVOS_NAO_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENCERRADOS):
+            print("\nArquivo não encontrado")
+            print(file['name'])
+            print(file['id'])
+            # iterar sobre todos os dicionarios de arquivos e verificar se tem o mesmo numero de processo
+            # 
+        
+            Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
+                'numero': "N/A",
+                'tipo': "N/A",
+                'nome': "N/A",
+                'numero_processo': "N/A",
+                'data_carimbo': "N/A",
+                'tempo_restante': "N/A",
+                'prazo_renovacao': "N/A",
+                'data_renovacao': "N/A",
+                'data_arquivada': "N/A",
+                'data_vencimento': "N/A",
+                'condicionantes_verify': "incompletas",
+                'situacao_condicionantes': "N/A",
+                'eh_oficio_entregue': False,
+                'data': None
+            }
 
 
     executar_carregar_licencas()
@@ -515,9 +517,9 @@ def index():
 
 
 @main.route('/mover_arquivo/<file_id>', methods=['POST'])
-def mover_arquivo(file_id):
+def mover_arquivo(file_id):  # sourcery skip: use-fstring-for-concatenation
     salvar_dicionarios()
-    
+
     if (verificar_se_oficio(file_id)):
         # Atualiza a licença correspondente com as condicionantes do ofício
         licenca_original_id = encontrar_licenca_com_numero_de_processo(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['numero_processo'])
@@ -537,13 +539,13 @@ def mover_arquivo(file_id):
                                 cond2.data_oficio = request.form.get('data_carimbo')
                                 break
                     Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'] = repr(licenca_copia)              
-                        
+
             else:
                 print("Erro ao mover arquivo: Licença não encontrada")
         else:
             print("Erro ao mover arquivo: Licença não encontrada")
 
-            
+
         Config.ARQUIVOS_NAO_ENTREGUES[file_id]['eh_oficio_entregue'] = True
         salvar_dicionarios()
         return redirect(url_for('main.index'))
@@ -552,11 +554,10 @@ def mover_arquivo(file_id):
     if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
         # Verifica se as condicionantes estão completas
         if Config.ARQUIVOS_NAO_ENTREGUES[file_id].get('condicionantes_verify') == "COMPLETAS":
-            data_carimbo = request.form.get('data_carimbo')
-            if data_carimbo:
+            if data_carimbo := request.form.get('data_carimbo'):
                 # Adiciona o arquivo ao dicionário de entregues
                 Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data_carimbo'] = datetime.strptime(data_carimbo + " 00:00:00", '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-                
+
                 # Atualiza o atributo data_carimbo da licença
                 licenca = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
                 if licenca is not None and isinstance(licenca, Licenca):
@@ -581,7 +582,7 @@ def mover_arquivo(file_id):
         else:
             # Adiciona uma mensagem flash para exibir no front-end
             flash("Preencha o campo 'PRAZO' de todas as condicionantes antes de enviar a licença para monitoramento.", "warning")
-    
+
     salvar_dicionarios()
     carregar_dicionarios()
     return redirect(url_for('main.index'))
@@ -684,68 +685,6 @@ def cumprir_condicionante():
 
     salvar_dicionarios()
     carregar_dicionarios()
-
-    return redirect(url_for('main.detalhes', file_id=file_id))
-
-
-@main.route('/atualizar_prazo', methods=['POST'])
-def atualizar_prazo():
-    file_id = request.form.get('file_id')
-    cond_index_str = request.form.get('cond_index')
-    # print("cond_index=", cond_index_str)                                                             
-    # print("file_id=", file_id)
-    # Verifica se cond_index está presente e é um número válido
-    if cond_index_str is None or not cond_index_str.isdigit():
-        return "Índice da condicionante inválido", 400
-
-    cond_index = int(cond_index_str) - 1  # Índice da condicionante
-    
-    tipo_prazo = request.form.get(f'tipo_prazo')
-    quantidade_prazo_str = request.form.get(f'quantidade_prazo')
-    
-    # Verifica se quantidade_prazo está presente e é um número válido
-    if quantidade_prazo_str is None or not quantidade_prazo_str.isdigit():
-        quantidade_prazo = 0  # Ou qualquer valor padrão apropriado
-    else:
-        quantidade_prazo = int(quantidade_prazo_str)
-
-    # Recuperar a licença e a condicionante
-    licenca_string = Config.ARQUIVOS_NAO_ENTREGUES.get(file_id, {}).get('data') or Config.ARQUIVOS_ENTREGUES.get(file_id, {}).get('data')
-    licenca = parse_licenca(licenca_string)
-
-    # print("tamanho da lista de condicionantes: ", len(licenca.condicionantes))
-
-    if licenca is None or cond_index >= len(licenca.condicionantes):
-        return "Licença ou condicionante não encontrada", 404
-
-    # print("tipo_prazo = ", tipo_prazo)
-    # print("quantidade_prazo = ", quantidade_prazo)
-
-    # Atualizar o prazo com base no tipo selecionado
-    if tipo_prazo == 'dias':
-        licenca.condicionantes[cond_index].prazo = f"{quantidade_prazo} dias a partir do carimbo"
-    elif tipo_prazo == 'meses':
-        licenca.condicionantes[cond_index].prazo = f"{quantidade_prazo} meses a partir do carimbo"
-    elif tipo_prazo == 'anos':
-        licenca.condicionantes[cond_index].prazo = f"{quantidade_prazo} anos a partir do carimbo"
-    elif tipo_prazo == 'intervalado':
-        licenca.condicionantes[cond_index].prazo = f"Intervalado ({quantidade_prazo} meses)"
-    else:
-        return "Tipo de prazo inválido", 400
-
-
-    # Aqui você deve salvar a licença atualizada no JSON ou banco de dados
-    # Atualize o atributo 'data' da licença no dicionário correspondente
-    if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
-        Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'] = repr(licenca)
-    elif file_id in Config.ARQUIVOS_ENTREGUES:
-        Config.ARQUIVOS_ENTREGUES[file_id]['data'] = repr(licenca)
-    elif file_id in Config.ARQUIVOS_ENCERRADOS:
-        Config.ARQUIVOS_ENCERRADOS[file_id]['data'] = repr(licenca)
-    
-
-    salvar_dicionarios()
-
 
     return redirect(url_for('main.detalhes', file_id=file_id))
 
