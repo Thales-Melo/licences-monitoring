@@ -1,4 +1,4 @@
-from flask import Blueprint, session, redirect, url_for, request
+from flask import Blueprint, flash, session, redirect, url_for, request
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from config import Config
 import json
@@ -24,17 +24,17 @@ def authorize():
 
 @main.route('/callback')
 def callback():
-    # logging.debug('Handling callback...')
+    # Tente buscar o token
     flow.fetch_token(authorization_response=request.url)
-    # logging.debug('Token fetched successfully')
 
-    if session['state'] != request.args.get('state'):
-        # logging.debug('State mismatch: Redirecting to index')
+    # Verifica se há um mismatch no state
+    if session.get('state') != request.args.get('state'):
+        # Adiciona um aviso ao sistema de mensagens
+        flash('Erro de segurança: O estado não corresponde. Atualize a página e tente novamente.', 'warning')
         return redirect(url_for('index'))
 
     credentials = flow.credentials
     session['credentials'] = credentials_to_dict(credentials)
-    # logging.debug('Credentials saved to session')
     return redirect(url_for('index'))
 
 def save_credentials(credentials):

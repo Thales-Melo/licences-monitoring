@@ -543,6 +543,18 @@ def index():
 def mover_arquivo(file_id):
     salvar_dicionarios()
     
+    # Verificar se a data está preenchida corretamente para não dar erro	
+    if request.form.get('data_carimbo') == "" or request.form.get('data_carimbo') is None or request.form.get('data_carimbo') == "N/A":
+        flash("Preencha o campo 'DATA' antes de enviar a licença para monitoramento.", "warning")
+        return redirect(url_for('main.index'))
+    
+    data_carimbo = request.form.get('data_carimbo')
+    # Verificar se o ano da data tem 4 dígitos
+    if len(data_carimbo) != 10:
+        flash("Preencha o campo 'DATA' corretamente antes de enviar a licença para monitoramento.", "warning")
+        return redirect(url_for('main.index')) 
+    
+
     if (verificar_se_oficio(file_id)):
         # Atualiza a licença correspondente com as condicionantes do ofício
         licenca_original_id = encontrar_licenca_com_numero_de_processo(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['numero_processo'])
