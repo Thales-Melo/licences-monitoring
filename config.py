@@ -16,12 +16,16 @@ class Config:
     CLIENT = MongoClient(MONGO_URI)
     DB = CLIENT[DATABASE_NAME]
     DOCX_FILES_COLLECTION = DB['docx_files']
+    RELATORIOS_COLLECTION = DB['relatorios']
 
     # Diretório do script
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    # Configurações do Google OAuth (busca das variáveis de ambiente ou usa caminho absoluto)
+    # Configurações do Google OAuth com o caminho absoluto para credentials.json
+    # GOOGLE_CLIENT_SECRETS = os.path.join(SCRIPT_DIR, 'credentials.json')
     GOOGLE_CLIENT_SECRETS = os.getenv('GOOGLE_CLIENT_SECRETS')
+    
+        
     REDIRECT_URI = os.getenv('REDIRECT_URI')
 
     # Configurações de logging e segurança (somente para desenvolvimento local)
@@ -41,3 +45,7 @@ class Config:
     ARQUIVOS_ENTREGUES = {}
     ARQUIVOS_ENCERRADOS = {}
 
+    # Configurações de tempo para atualização dos datasets
+    TEMPO_ATUALIZACAO_DATASETS = 0 
+    INTERVALO_ATUALIZACAO = 3600  # 1 hora
+    

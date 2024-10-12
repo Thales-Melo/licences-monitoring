@@ -1,17 +1,16 @@
 # main/routes.py
 import datetime
+import json
 import logging
 from flask import Blueprint, flash, redirect, render_template, url_for, session, request
 from app.auth import credentials_to_dict
-from app.utils import atualizar_situacao_condicionantes, carregar_dicionarios, enviar_email, mover_oficio_para_entregues, processar_arquivo_entregue, salvar_dicionarios, executar_carregar_licencas, gerar_relatorio_excel, ordenar_arquivos, filtrar_e_ordenar, paginate, salvar_relatorio_mongodb, tempo_restante_condicionantes, update_order, listar_arquivos_pasta, parse_licenca, Licenca, calcula_tempo_restante, get_validade_em_dias, condicionantes_preenchidas, condicionantes_vencendo, verificar_condicionantes_completas, verificar_se_oficio, encontrar_licenca_com_numero_de_processo
+from app.utils import atualizar_situacao_condicionantes, carregar_dicionarios, enviar_email, salvar_datasets_google_sheets, salvar_dicionarios, executar_carregar_licencas, gerar_relatorio_excel, ordenar_arquivos, filtrar_e_ordenar, paginate, salvar_relatorio_mongodb, tempo_restante_condicionantes, update_order, listar_arquivos_pasta, parse_licenca, Licenca, calcula_tempo_restante, get_validade_em_dias, condicionantes_preenchidas, condicionantes_vencendo, verificar_e_salvar_datasets, verificar_se_oficio, encontrar_licenca_com_numero_de_processo, salvar_datasets_excel
 import google.oauth2.credentials
 import googleapiclient.discovery
 from datetime import datetime, timedelta
 
 from config import Config
 from google_auth_oauthlib.flow import Flow
-
-import json
 
 main = Blueprint('main', __name__)
 
@@ -90,6 +89,9 @@ def ordenar():
     session['NE_criterio'] = Config.CRITERIO_NAO_ENTREGUES
     session['E_criterio'] = Config.CRITERIO_ENTREGUES
     session['EN_criterio'] = Config.CRITERIO_ENCERRADOS
+    session['tam_nao_entregues'] = len(Config.ARQUIVOS_NAO_ENTREGUES)
+    session['tam_entregues'] = len(Config.ARQUIVOS_ENTREGUES)
+    session['tam_encerradas'] = len(Config.ARQUIVOS_ENCERRADOS)
 
     # Renderizar a página com os arquivos ordenados e filtrados
     return render_template(
@@ -107,6 +109,7 @@ def ordenar():
         criterio_ordenacao=criterio,
         ordem=ordem,
         cor=cor,
+        tabela=tabela,
         search_query=search_query
     )
 
@@ -154,9 +157,9 @@ def buscar():
     total_entregues = len(entregues_sorted)
     total_encerradas = len(encerradas_sorted)
 
-    paginacao_nao_entregues = paginate(nao_entregues_sorted, page_nao_entregues)
-    paginacao_entregues = paginate(entregues_sorted, page_entregues)
-    paginacao_encerradas = paginate(encerradas_sorted, page_encerradas)
+    # paginacao_nao_entregues = paginate(nao_entregues_sorted, page_nao_entregues)
+    # paginacao_entregues = paginate(entregues_sorted, page_entregues)
+    # paginacao_encerradas = paginate(encerradas_sorted, page_encerradas)
 
     total_nao_entregues_filtered = len(nao_entregues_filtered_sorted)
     total_entregues_filtered = len(entregues_filtered_sorted)
@@ -208,30 +211,35 @@ def atualizar():
     ids_existentes = set(Config.ARQUIVOS_NAO_ENTREGUES) | set(Config.ARQUIVOS_ENTREGUES) | set(Config.ARQUIVOS_ENCERRADOS)
     novos_arquivos = []
 
+    session['tam_nao_entregues'] = len(Config.ARQUIVOS_NAO_ENTREGUES)
+    session['tam_entregues'] = len(Config.ARQUIVOS_ENTREGUES)
+    session['tam_encerradas'] = len(Config.ARQUIVOS_ENCERRADOS)
+
     for file in files:
-        if file['name'].endswith('.docx') and 'OF' not in file['name'] and file['id'] not in ids_existentes:
-            nome_parts = file['name'].split(' - ')
-            if len(nome_parts) == 3:
-                numero, tipo, nome = nome_parts
-            else:
-                numero, tipo, nome = "N/A", "N/A", file['name']
-            Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
-                'numero': numero.strip(),
-                'tipo': tipo.strip(),
-                'nome': nome.strip(),
-                'numero_processo': "N/A",
-                'data_carimbo': "N/A",
-                'tempo_restante': "N/A",
-                'prazo_renovacao': "N/A",
-                'data_renovacao': "N/A",
-                'data_arquivada': "N/A",
-                'data_vencimento': "N/A",
-                'condicionantes_verify': "incompletas",
-                'situacao_condicionantes': "N/A",
-                'eh_oficio_entregue': False,
-                'data': None
-            }
-            novos_arquivos.append(file['name'])
+        if file['name'].endswith('.docx') and 'OF' not in file['name']:
+            if file['id'] not in ids_existentes:
+                nome_parts = file['name'].split(' - ')
+                if len(nome_parts) == 3:
+                    numero, tipo, nome = nome_parts
+                else:
+                    numero, tipo, nome = "N/A", "N/A", file['name']
+                Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
+                    'numero': numero.strip(),
+                    'tipo': tipo.strip(),
+                    'nome': nome.strip(),
+                    'numero_processo': "N/A",
+                    'data_carimbo': "N/A",
+                    'tempo_restante': "N/A",
+                    'prazo_renovacao': "N/A",
+                    'data_renovacao': "N/A",
+                    'data_arquivada': "N/A",
+                    'data_vencimento': "N/A",
+                    'condicionantes_verify': "incompletas",
+                    'situacao_condicionantes': "N/A",
+                    'eh_oficio_entregue': False,
+                    'data': None
+                }
+                novos_arquivos.append(file['name'])
 
     if novos_arquivos:
         salvar_dicionarios()
@@ -248,6 +256,7 @@ def filtrar_por_cor():
     cor = request.args.get('cor', 'vermelho')
     criterio_ordenacao = request.args.get('sort_by', 'numero')
     ordem = session.get('ordem', 'asc')
+    tabela = request.args.get('tabela', 'nao_entregues')
 
     # Filtra arquivos com base na cor
     def filter_by_color(arquivos):
@@ -283,9 +292,9 @@ def filtrar_por_cor():
     total_entregues = len(entregues_sorted)
     total_encerradas = len(encerradas_sorted)
 
-    paginacao_nao_entregues = paginate(nao_entregues_sorted, page_nao_entregues)
-    paginacao_entregues = paginate(entregues_sorted, page_entregues)
-    paginacao_encerradas = paginate(encerradas_sorted, page_encerradas)
+    # paginacao_nao_entregues = paginate(nao_entregues_sorted, page_nao_entregues)
+    # paginacao_entregues = paginate(entregues_sorted, page_entregues)
+    # paginacao_encerradas = paginate(encerradas_sorted, page_encerradas)
 
     total_nao_entregues_filtered = len(nao_entregues_filtered_sorted)
     total_entregues_filtered = len(entregues_filtered_sorted)
@@ -294,6 +303,10 @@ def filtrar_por_cor():
     paginacao_nao_entregues_filtered = paginate(nao_entregues_filtered_sorted, page_nao_entregues)
     paginacao_entregues_filtered = paginate(entregues_filtered_sorted, page_entregues)
     paginacao_encerradas_filtered = paginate(encerradas_filtered_sorted, page_encerradas)
+
+    session['tam_nao_entregues'] = len(Config.ARQUIVOS_NAO_ENTREGUES)
+    session['tam_entregues'] = len(Config.ARQUIVOS_ENTREGUES)
+    session['tam_encerradas'] = len(Config.ARQUIVOS_ENCERRADOS)
 
     return render_template(
         'index.html',
@@ -315,16 +328,19 @@ def filtrar_por_cor():
         ITEMS_PER_PAGE=ITEMS_PER_PAGE,
         criterio_ordenacao=criterio_ordenacao,
         ordem=ordem,
+        tabela=tabela,
         search_query=''
     )
 
 @main.route('/')
-def index():  # sourcery skip: use-fstring-for-concatenation
+def index():
+    # marcar quanto tempo demora pra carregar a página
+    start = datetime.now()
 
     if 'credentials' not in session:
         return redirect(url_for('main.authorize'))
 
-    salvar_dicionarios()
+    # salvar_dicionarios()
     carregar_dicionarios()
 
     # Resto do código
@@ -333,56 +349,49 @@ def index():  # sourcery skip: use-fstring-for-concatenation
     pasta_virtual_id = '1eq9AR9NEuo3fTFBw3JPPa9vxLSXkzGJY'
     files = listar_arquivos_pasta(drive_service, pasta_virtual_id)
 
-    print("arquivos que já tem")
-    for file_id, file_data in Config.ARQUIVOS_NAO_ENTREGUES.items():
-        print(file_data['nome'])
-        print(file_id)
+    # print("arquivos que já tem")
+    # for file_id, file_data in Config.ARQUIVOS_NAO_ENTREGUES.items():
+    #     print(file_data['nome'])
+    #     print(file_id)
 
-    print("______________________")
-    for file_id, file_data in Config.ARQUIVOS_ENTREGUES.items():
-        print(file_data['nome'])
-        print(file_id)
+    # print("______________________")
+    # for file_id, file_data in Config.ARQUIVOS_ENTREGUES.items():
+    #     print(file_data['nome'])
+    #     print(file_id)
 
-    print("______________________")
+    # print("______________________")
 
     for file in files:
-        print(file['name'])
-        print(file['id'])
-        if file['name'].endswith('.docx') and (file['id'] not in Config.ARQUIVOS_NAO_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENCERRADOS):
-            print("\nArquivo não encontrado")
-            print(file['name'])
-            print(file['id'])
-            # iterar sobre todos os dicionarios de arquivos e verificar se tem o mesmo numero de processo
-            # 
-        
-            Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
-                'numero': "N/A",
-                'tipo': "N/A",
-                'nome': "N/A",
-                'numero_processo': "N/A",
-                'data_carimbo': "N/A",
-                'tempo_restante': "N/A",
-                'prazo_renovacao': "N/A",
-                'data_renovacao': "N/A",
-                'data_arquivada': "N/A",
-                'data_vencimento': "N/A",
-                'condicionantes_verify': "incompletas",
-                'situacao_condicionantes': "N/A",
-                'eh_oficio_entregue': False,
-                'data': None
-            }
+        # print(file['name'])
+        # print(file['id'])
+        if file['name'].endswith('.docx'):
+            if file['id'] not in Config.ARQUIVOS_NAO_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENTREGUES and file['id'] not in Config.ARQUIVOS_ENCERRADOS:   
+                # print("\nArquivo não encontrado")
+                # print(file['name'])
+                # print(file['id'])
+                # iterar sobre todos os dicionarios de arquivos e verificar se tem o mesmo numero de processo
+                # 
 
+                Config.ARQUIVOS_NAO_ENTREGUES[file['id']] = {
+                    'numero': "N/A",
+                    'tipo': "N/A",
+                    'nome': "N/A",
+                    'numero_processo': "N/A",
+                    'data_carimbo': "N/A",
+                    'tempo_restante': "N/A",
+                    'prazo_renovacao': "N/A",
+                    'data_renovacao': "N/A",
+                    'data_arquivada': "N/A",
+                    'data_vencimento': "N/A",
+                    'condicionantes_verify': "incompletas",
+                    'situacao_condicionantes': "N/A",
+                    'eh_oficio_entregue': False,
+                    'data': None
+                }
+                # print(Config.ARQUIVOS_NAO_ENTREGUES[file['id']])
 
+# condicionantes_vencendo
     executar_carregar_licencas()
-    # salvar_dicionarios()
-    # for file_id, file_data in Config.ARQUIVOS_NAO_ENTREGUES.items():
-    #     licenca = parse_licenca(file_data.get('data'))
-    #     if licenca and isinstance(licenca, Licenca):
-    #         file_data['numero_processo'] = licenca.numero_processo
-    #         print("Numero do processo: ", licenca.numero_processo)
-    #         print("Nome: ", licenca.requerente)
-    #     else:
-    #         print("Erro ao carregar o número do processo")
 
     # Cria uma lista para armazenar os IDs dos arquivos que precisam ser movidos
     arquivos_para_mover = []
@@ -431,7 +440,6 @@ def index():  # sourcery skip: use-fstring-for-concatenation
                 # print("Condicionantes preenchidas\n")
 
     salvar_dicionarios()
-    # print()
     # Obtém o critério de ordenação, a ordem e a consulta de busca da URL
     criterio_ordenacao = request.args.get('sort_by', 'numero')
     ordem = session.get('ordem', 'asc')
@@ -440,6 +448,9 @@ def index():  # sourcery skip: use-fstring-for-concatenation
     # Filtra arquivos com base na consulta de busca
     def filter_by_search(arquivos):
         return {file_id: file_data for file_id, file_data in arquivos.items() if search_query.lower() in file_data['nome'].lower()}
+
+    # Marcar quanto tempo demora nessas funções de filtrar e ordenar
+    start_filter = datetime.now()
 
     # Ordena arquivos antes de aplicar a busca
     nao_entregues_sorted = ordenar_arquivos(list(Config.ARQUIVOS_NAO_ENTREGUES.items()), criterio_ordenacao, ordem)
@@ -483,6 +494,27 @@ def index():  # sourcery skip: use-fstring-for-concatenation
     paginacao_entregues_filtered = paginate(entregues_filtered_sorted, page_entregues)
     paginacao_encerradas_filtered = paginate(encerradas_filtered_sorted, page_encerradas)
 
+    # Marcar quanto tempo demora nessas funções de filtrar e ordenar
+    end_filter = datetime.now()
+    print(f'Tempo de filtrar e ordenar: {end_filter - start_filter}')
+
+    # Criar datasets e salvar em arquivos Excel
+    
+    # salvar_datasets_excel()
+    # marcar quanto tempo demora para salvar os datasets em arquivos Excel
+    start_save_excel = datetime.now()
+    # salvar_datasets_google_sheets()
+    verificar_e_salvar_datasets()
+    end_save_excel = datetime.now()
+    print(f'Tempo de salvar datasets em arquivos Excel: {end_save_excel - start_save_excel}')
+
+    session['tam_nao_entregues'] = len(Config.ARQUIVOS_NAO_ENTREGUES)
+    session['tam_entregues'] = len(Config.ARQUIVOS_ENTREGUES)
+    session['tam_encerradas'] = len(Config.ARQUIVOS_ENCERRADOS)
+
+    # marcar quanto tempo demora pra carregar a página
+    end = datetime.now()
+    print(f'Tempo de carregamento da página: {end - start}')
     return render_template(
         'index.html',
         paginacao_nao_entregues=paginacao_nao_entregues,
@@ -509,20 +541,72 @@ def index():  # sourcery skip: use-fstring-for-concatenation
 
 @main.route('/mover_arquivo/<file_id>', methods=['POST'])
 def mover_arquivo(file_id):
-    # salvar_dicionarios()
+    salvar_dicionarios()
+    
+    if (verificar_se_oficio(file_id)):
+        # Atualiza a licença correspondente com as condicionantes do ofício
+        licenca_original_id = encontrar_licenca_com_numero_de_processo(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['numero_processo'])
+        if licenca_original_id is not None:
+            licenca_original = parse_licenca(Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'])
+            if licenca_original is not None and isinstance(licenca_original, Licenca):
+                # Atualiza a licença com as condicionantes do ofício
+                licenca_copia = licenca_original.copiar()
+                oficio = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
+                if oficio is not None and isinstance(oficio, Licenca):
+                    for cond in oficio.condicionantes:
+                        for cond2 in licenca_copia.condicionantes:
+                            if cond2.numero.lstrip('0') == cond.numero.lstrip('0'):
+                                cond2.tem_oficio = True
+                                cond2.descricao = cond.descricao
+                                cond2.prazo = cond.prazo
+                                cond2.data_oficio = request.form.get('data_carimbo')
+                                break
+                    Config.ARQUIVOS_ENTREGUES[licenca_original_id]['data'] = repr(licenca_copia)              
+                        
+            else:
+                print("Erro ao mover arquivo: Licença não encontrada")
+        else:
+            print("Erro ao mover arquivo: Licença não encontrada")
 
-    if verificar_se_oficio(file_id):
-        mover_oficio_para_entregues(file_id)
+            
+        Config.ARQUIVOS_NAO_ENTREGUES[file_id]['eh_oficio_entregue'] = True
         salvar_dicionarios()
-        carregar_dicionarios()
         return redirect(url_for('main.index'))
 
-    if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
-        if verificar_condicionantes_completas(file_id):
-            processar_arquivo_entregue(file_id)
-        else:
-            flash("Preencha o campo 'PRAZO' de todas as condicionantes antes de enviar a licença para monitoramento.", "warning")
 
+    if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
+        # Verifica se as condicionantes estão completas
+        if Config.ARQUIVOS_NAO_ENTREGUES[file_id].get('condicionantes_verify') == "COMPLETAS":
+            data_carimbo = request.form.get('data_carimbo')
+            if data_carimbo:
+                # Adiciona o arquivo ao dicionário de entregues
+                Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data_carimbo'] = datetime.strptime(data_carimbo + " 00:00:00", '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
+                
+                # Atualiza o atributo data_carimbo da licença
+                licenca = parse_licenca(Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'])
+                if licenca is not None and isinstance(licenca, Licenca):
+                    # Move o arquivo para o dicionário de entregues
+                    Config.ARQUIVOS_ENTREGUES[file_id] = Config.ARQUIVOS_NAO_ENTREGUES.pop(file_id)
+                    salvar_dicionarios()
+                    # Atualiza os atributos da licença
+                    licenca.data_carimbo = datetime.strptime(data_carimbo, '%Y-%m-%d').strftime('%d/%m/%Y')
+                    licenca.tempo_restante = calcula_tempo_restante(licenca)
+                    Config.ARQUIVOS_ENTREGUES[file_id]['tempo_restante'] = licenca.tempo_restante
+                    licenca.prazo_renovacao = licenca.tempo_restante - 120 if licenca.tempo_restante is not None else "N/A"
+                    licenca.data_renovacao = (datetime.strptime(data_carimbo, '%Y-%m-%d') + timedelta(days=licenca.prazo_renovacao)).strftime('%d/%m/%Y') if licenca.tempo_restante is not None else "N/A"
+                    licenca.data_vencimento = (datetime.strptime(data_carimbo, '%Y-%m-%d') + timedelta(days=licenca.tempo_restante)).strftime('%d/%m/%Y') if licenca.tempo_restante is not None else "N/A"
+                    Config.ARQUIVOS_ENTREGUES[file_id]['prazo_renovacao'] = licenca.prazo_renovacao
+                    Config.ARQUIVOS_ENTREGUES[file_id]['data_renovacao'] = licenca.data_renovacao
+                    Config.ARQUIVOS_ENTREGUES[file_id]['data_vencimento'] = licenca.data_vencimento
+                    Config.ARQUIVOS_ENTREGUES[file_id]['data'] = repr(licenca)
+
+                else:
+                    print("Erro ao carimbar arquivo: Faça novamente")
+                salvar_dicionarios()
+        else:
+            # Adiciona uma mensagem flash para exibir no front-end
+            flash("Preencha o campo 'PRAZO' de todas as condicionantes antes de enviar a licença para monitoramento.", "warning")
+    
     salvar_dicionarios()
     carregar_dicionarios()
     return redirect(url_for('main.index'))
@@ -570,42 +654,43 @@ def retomar(file_id):
 
 @main.route('/detalhes/<file_id>')
 def detalhes(file_id):
-    # logging.debug(f'Retrieving details for file_id: {file_id}')
-    # tipo_tabela = request.args.get('tipo_tabela', 'nao_entregues')
-    # Recupera a licença do dicionário
-    licenca_string = Config.ARQUIVOS_NAO_ENTREGUES.get(file_id, {}).get('data') or Config.ARQUIVOS_ENTREGUES.get(file_id, {}).get('data') or Config.ARQUIVOS_ENCERRADOS.get(file_id, {}).get('data')
-    
-    # Processa a licença se licenca_string for uma string
+    # Recupera a licença dos dicionários, tentando em ordem de prioridade
+    arquivo_info = (Config.ARQUIVOS_NAO_ENTREGUES.get(file_id) or
+                    Config.ARQUIVOS_ENTREGUES.get(file_id) or
+                    Config.ARQUIVOS_ENCERRADOS.get(file_id))
+
+    if not arquivo_info:
+        return "Licença não encontrada", 404
+
+    # Processa a licença
+    licenca_string = arquivo_info.get('data')
     licenca = parse_licenca(licenca_string) if isinstance(licenca_string, str) else licenca_string
-    # if licenca is None:
-        # logging.debug(f'No data found for file_id: {file_id}')
-    tipo_tabela = ''
-    # Atualizar o tempo restante para cumprir as condicionantes
+
+    # Atualizar o tempo restante e a situação das condicionantes
     licenca.condicionantes = tempo_restante_condicionantes(licenca, file_id)
     licenca.condicionantes = atualizar_situacao_condicionantes(licenca)
+
+    # Define o tipo de tabela e atualiza o dicionário correto
     if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
         Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'] = repr(licenca)
         tipo_tabela = 'nao_entregues'
     elif file_id in Config.ARQUIVOS_ENTREGUES:
         Config.ARQUIVOS_ENTREGUES[file_id]['data'] = repr(licenca)
         tipo_tabela = 'entregues'
-    elif file_id in Config.ARQUIVOS_ENCERRADOS:
+    else:
         Config.ARQUIVOS_ENCERRADOS[file_id]['data'] = repr(licenca)
         tipo_tabela = 'encerrados'
 
     salvar_dicionarios()
-    # for cond in licenca.condicionantes:
-    #     print(cond.descricao)
-    #     print(cond.prazo)
-    #     print(cond.cumprida)
-    #     print(cond.tempo_restante)
-    #     print()
-    # Recupera o nome do arquivo de ambos os dicionários, preferindo Config.ARQUIVOS_NAO_ENTREGUES
-    numero_licenca = Config.ARQUIVOS_NAO_ENTREGUES.get(file_id, {}).get('numero') or Config.ARQUIVOS_ENTREGUES.get(file_id, {}).get('numero') or Config.ARQUIVOS_ENCERRADOS.get(file_id, {}).get('numero')
-    tipo_licenca = Config.ARQUIVOS_NAO_ENTREGUES.get(file_id, {}).get('tipo') or Config.ARQUIVOS_ENTREGUES.get(file_id, {}).get('tipo') or Config.ARQUIVOS_ENCERRADOS.get(file_id, {}).get('tipo')
+
+    # Recupera o número e tipo da licença
+    numero_licenca = arquivo_info.get('numero')
+    tipo_licenca = arquivo_info.get('tipo')
 
     # Renderiza o template com a licença
-    return render_template('detalhes.html', licenca=licenca, numero_licenca=numero_licenca, tipo_licenca=tipo_licenca, file_id=file_id, tipo_tabela=tipo_tabela)
+    return render_template('detalhes.html', licenca=licenca, numero_licenca=numero_licenca,
+                           tipo_licenca=tipo_licenca, file_id=file_id, tipo_tabela=tipo_tabela)
+
 
 
 @main.route('/cumprir_condicionante', methods=['POST'])
@@ -629,6 +714,68 @@ def cumprir_condicionante():
     return redirect(url_for('main.detalhes', file_id=file_id))
 
 
+@main.route('/atualizar_prazo', methods=['POST'])
+def atualizar_prazo():
+    file_id = request.form.get('file_id')
+    cond_index_str = request.form.get('cond_index')
+    # print("cond_index=", cond_index_str)                                                             
+    # print("file_id=", file_id)
+    # Verifica se cond_index está presente e é um número válido
+    if cond_index_str is None or not cond_index_str.isdigit():
+        return "Índice da condicionante inválido", 400
+
+    cond_index = int(cond_index_str) - 1  # Índice da condicionante
+    
+    tipo_prazo = request.form.get(f'tipo_prazo')
+    quantidade_prazo_str = request.form.get(f'quantidade_prazo')
+    
+    # Verifica se quantidade_prazo está presente e é um número válido
+    if quantidade_prazo_str is None or not quantidade_prazo_str.isdigit():
+        quantidade_prazo = 0  # Ou qualquer valor padrão apropriado
+    else:
+        quantidade_prazo = int(quantidade_prazo_str)
+
+    # Recuperar a licença e a condicionante
+    licenca_string = Config.ARQUIVOS_NAO_ENTREGUES.get(file_id, {}).get('data') or Config.ARQUIVOS_ENTREGUES.get(file_id, {}).get('data')
+    licenca = parse_licenca(licenca_string)
+
+    # print("tamanho da lista de condicionantes: ", len(licenca.condicionantes))
+
+    if licenca is None or cond_index >= len(licenca.condicionantes):
+        return "Licença ou condicionante não encontrada", 404
+
+    # print("tipo_prazo = ", tipo_prazo)
+    # print("quantidade_prazo = ", quantidade_prazo)
+
+    # Atualizar o prazo com base no tipo selecionado
+    if tipo_prazo == 'dias':
+        licenca.condicionantes[cond_index].prazo = f"{quantidade_prazo} dias a partir do carimbo"
+    elif tipo_prazo == 'meses':
+        licenca.condicionantes[cond_index].prazo = f"{quantidade_prazo} meses a partir do carimbo"
+    elif tipo_prazo == 'anos':
+        licenca.condicionantes[cond_index].prazo = f"{quantidade_prazo} anos a partir do carimbo"
+    elif tipo_prazo == 'intervalado':
+        licenca.condicionantes[cond_index].prazo = f"Intervalado ({quantidade_prazo} meses)"
+    else:
+        return "Tipo de prazo inválido", 400
+
+
+    # Aqui você deve salvar a licença atualizada no JSON ou banco de dados
+    # Atualize o atributo 'data' da licença no dicionário correspondente
+    if file_id in Config.ARQUIVOS_NAO_ENTREGUES:
+        Config.ARQUIVOS_NAO_ENTREGUES[file_id]['data'] = repr(licenca)
+    elif file_id in Config.ARQUIVOS_ENTREGUES:
+        Config.ARQUIVOS_ENTREGUES[file_id]['data'] = repr(licenca)
+    elif file_id in Config.ARQUIVOS_ENCERRADOS:
+        Config.ARQUIVOS_ENCERRADOS[file_id]['data'] = repr(licenca)
+    
+
+    salvar_dicionarios()
+
+
+    return redirect(url_for('main.detalhes', file_id=file_id))
+
+
 @main.route('/enviar_relatorio', methods=['POST'])
 def enviar_relatorio():
     # Gerar o relatório em formato Excel
@@ -641,3 +788,8 @@ def enviar_relatorio():
     enviar_email()
     
     return redirect(url_for('main.index'))
+
+# @main.route('/salvar_datasets', methods=['POST'])
+# def salvar_datasets():
+#     salvar_datasets_google_sheets()
+#     return redirect(url_for('main.index'))

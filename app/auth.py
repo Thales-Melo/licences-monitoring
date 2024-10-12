@@ -1,7 +1,7 @@
-import json
 from flask import Blueprint, session, redirect, url_for, request
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from config import Config
+import json
 
 main = Blueprint('main', __name__)
 
@@ -56,3 +56,4 @@ def credentials_to_dict(credentials):
         'client_secret': credentials.client_secret,
         'scopes': credentials.scopes
     }
+

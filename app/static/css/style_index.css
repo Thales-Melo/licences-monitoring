@@ -1,65 +1,326 @@
-/* Configurações de fundo */
-body {
-    background-color: #f4f7f6; /* Fundo igual ao da tela de detalhes */
-    font-family: 'Arial', sans-serif;
+/* Reset básico */
+* {
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    box-sizing: border-box;
 }
+
+body {
+    font-family: Arial, sans-serif;
+    color: #4a4a4a;
+    overflow: hidden; /* Evita rolagem vertical */
+}
+
 .container {
-    max-width: 2000px; /* Ajuste a largura máxima do container */
-    background: rgba(255, 255, 255, 0.95); /* Fundo branco com leve transparência */
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    margin-top: 30px;
-    position: relative;
-    z-index: 1;
+    display: flex;
+    height: 100vh; /* Faz com que a altura ocupe toda a tela */
 }
+.main-content {
+    margin-bottom: 250px; /* Ajuste o valor conforme necessário */
+}
+
+/* Navbar lateral */
+.navbar {
+    width: 250px;
+    background-color: #512898;
+    height: 100vh; /* Altura total da tela */
+    padding: 20px;
+    position: fixed; /* Fixa a barra na lateral esquerda */
+    top: 0;
+    left: 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Adiciona sombra para um efeito de profundidade */
+}
+
+.navbar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.navbar ul li {
+    margin-bottom: 20px;
+}
+
+.navbar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    display: flex; /* Usa flexbox para alinhar ícone e texto */
+    align-items: center; /* Alinha verticalmente */
+    padding: 10px; /* Adiciona padding ao link */
+    border-radius: 5px; /* Bordas arredondadas */
+    transition: background-color 0.3s, padding-left 0.3s; /* Transição suave */
+}
+
+.navbar ul li a i {
+    margin-right: 10px; /* Adiciona espaço entre o ícone e o texto */
+}
+
+.navbar ul li a:hover {
+    background-color: #af23af; /* Cor de fundo ao passar o mouse */
+    padding-left: 15px; /* Aumenta o padding ao passar o mouse */
+}
+
+/* Destaque para o link ativo */
+.navbar ul li a.active {
+    background-color: #af23af; /* Cor de fundo do link ativo */
+    padding-left: 15px; /* Consistente com o hover */
+}
+
+
+/* Cabeçalho */
+.header {
+    background-color: #f8f9fa;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: calc(100% - 250px); /* Ajusta a largura do cabeçalho para não sobrepor a navbar */
+    margin-left: 250px; /* Garante que o cabeçalho não fique embaixo da navbar */
+    position: fixed; /* Fixa o cabeçalho no topo */
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    font-size: 24px;
+    color: #512898;
+}
+
+.logo-img {
+    width: 150px; /* Ajuste este valor conforme o tamanho desejado */
+    height: auto; /* Mantém a proporção da imagem */
+}
+
+.destaque {
+    color: #af23af;
+}
+
+.cidade {
+    color: #f58220;
+}
+
+.titulo-pagina {
+    text-align: right;
+}
+
+.titulo-pagina h2 {
+    font-size: 18px;
+    color: #7d228b;
+}
+
+/* Conteúdo principal */
+.main-content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #fff;
+    min-height: 100vh;
+    margin-top: 80px; /* Espaço abaixo do cabeçalho fixo */
+    margin-left: 250px; /* Espaço à direita da navbar fixa */
+    overflow-y: auto; /* Ativa rolagem vertical para o conteúdo */
+    padding-bottom: 60px; /* Evita que o conteúdo sobreponha o rodapé */
+}
+
+/* Rodapé */
+.footer {
+    padding-top: 200px; /* Ajuste o valor conforme necessário */
+    background-color: #f8f9fa; /* Exemplo de cor de fundo, ajuste conforme necessário */
+    padding: 5px; /* Diminuir o padding geral para reduzir a altura */
+    display: flex;
+    flex-direction: column; /* Coluna para organizar os elementos */
+    align-items: center;
+    text-align: center;
+    position: fixed; /* Fixa o rodapé na parte inferior */
+    bottom: 0;
+    left: 250px; /* Alinha o rodapé com a borda da navbar */
+    width: calc(100% - 250px); /* Garante que o rodapé ocupe a largura restante */
+    z-index: 1000;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-around;
+    width: 100%; /* Preenche toda a largura */
+    flex-wrap: wrap;
+}
+
+.footer-content div {
+    margin: 5px; /* Reduzir a margem entre os elementos */
+}
+
+.logo-footer .logo-img {
+    width: 100px; /* Reduzir o tamanho da logo */
+    height: auto;
+}
+
+.projetos-inteligentes {
+    color: #af23af;
+}
+
+.informacoes-footer a,
+.social-footer a,
+.contato-footer a {
+    color: #512898;
+    text-decoration: none;
+    font-size: 14px; /* Reduzir o tamanho da fonte */
+}
+
+.footer-address {
+    width: 100%;
+    background-color: #ccc;
+    text-align: center;
+    padding: 5px 0; /* Reduzir o padding */
+    margin-top: 5px; /* Reduzir o espaço entre os conteúdos */
+    font-size: 12px; /* Diminuir o tamanho da fonte */
+}
+
+.footer-bottom {
+    background-color: #ccc;
+    text-align: center;
+    padding: 5px 0;
+    font-size: 12px;
+}
+
+/* Estilos para dispositivos menores */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .header {
+        flex-direction: column;
+        text-align: center;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .footer {
+        left: 0;
+        width: 100%;
+    }
+
+    .main-content {
+        margin-left: 0;
+        margin-top: 80px;
+    }
+
+    .navbar {
+        width: 100%;
+        min-height: auto;
+        position: relative; /* Retira a navbar fixa em telas menores */
+    }
+}
+
+
 h1, h2 {
     color: #333;
     font-weight: 600;
 }
+
+/* Centralizar o título */
+h2 {
+    text-align: center;
+    margin-bottom: 20px; /* Adiciona um espaçamento entre o título e a tabela */
+}
+
 .btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
-    font-size: 0.9rem;
-    border-radius: 50px;
+    padding: 8px 15px; /* Mantém o padding consistente com o .btn-action */
+    border-radius: 5px; /* Bordas arredondadas leves */
+    font-weight: bold; /* Destaca o texto */
+    background-color: #007bff; /* Cor de fundo azul */
+    color: #fff; /* Cor do texto branca */
+    border: 2px solid transparent; /* Remove a borda visível */
+    transition: background-color 0.3s ease, transform 0.2s, box-shadow 0.3s ease; /* Transições suaves para várias propriedades */
 }
+
 .btn-primary:hover {
-    background-color: #0056b3;
-    border-color: #004085;
+    background-color: #0056b3; /* Cor mais escura ao passar o mouse */
+    transform: scale(1.05); /* Aumenta o botão levemente no hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra ao passar o mouse */
 }
-.btn-info {
-    background-color: #17a2b8;
-    border-color: #17a2b8;
-    font-size: 0.9rem;
-    border-radius: 50px;
+
+.btn-primary:active {
+    background-color: #004085; /* Cor mais escura ao clicar */
+    transform: scale(1); /* Remove a escala no clique */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Sombra menor ao clicar */
 }
-.btn-info:hover {
-    background-color: #117a8b;
-    border-color: #10707f;
+
+
+/* Estilo base para botões */
+.btn-action, .btn-warning, .btn-danger, .btn-info {
+    padding: 8px 15px; /* Aumenta o padding do botão */
+    border-radius: 5px; /* Borda arredondada */
+    font-weight: bold; /* Torna o texto mais destacado */
+    transition: background-color 0.3s ease, transform 0.2s, box-shadow 0.3s ease; /* Transições suaves */
+    color: #fff; /* Texto branco para consistência */
 }
+
+/* Efeito hover global para todos os botões */
+.btn-action:hover, .btn-warning:hover, .btn-danger:hover, .btn-info:hover {
+    transform: scale(1.05); /* Aumenta o botão levemente ao passar o mouse */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra ao passar o mouse */
+}
+
+/* Botão de ação geral */
+.btn-action {
+    background-color: #007bff; /* Cor de fundo padrão */
+    border-color: #007bff; /* Cor da borda */
+}
+
+.btn-action:hover {
+    background-color: #0056b3; /* Cor de fundo ao passar o mouse */
+}
+
+/* Botão de alerta (Descarimbar) */
 .btn-warning {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    font-size: 0.9rem;
-    border-radius: 50px;
+    background-color: #FFC107; /* Cor de fundo para o botão de descarimbar */
+    border-color: #FFC107; /* Cor da borda */
 }
+
 .btn-warning:hover {
-    background-color: #e0a800;
-    border-color: #d39e00;
+    background-color: #ffca2c; /* Cor de fundo ao passar o mouse */
 }
+
+/* Botão de perigo (Arquivar) */
 .btn-danger {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    font-size: 0.9rem;
-    border-radius: 50px;
+    background-color: #DC3545; /* Cor de fundo para o botão de arquivar */
+    border-color: #DC3545; /* Cor da borda */
 }
+
 .btn-danger:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
+    background-color: #c82333; /* Cor de fundo ao passar o mouse */
 }
+
+/* Botão de informação (Detalhes) */
+.btn-info {
+    background-color: #17A2B8; /* Cor de fundo para o botão de detalhes */
+    border-color: #17A2B8; /* Cor da borda */
+}
+
+.btn-info:hover {
+    background-color: #138496; /* Cor de fundo ao passar o mouse */
+}
+
+.btn {
+    text-decoration: none; /* Remove o sublinhado dos links */
+    padding: 8px 15px; /* Consistência com o estilo dos botões */
+    border-radius: 5px; /* Borda arredondada */
+    font-weight: bold; /* Destaca o texto */
+    transition: background-color 0.3s ease, transform 0.2s, box-shadow 0.3s ease; /* Transições suaves */
+    color: #fff; /* Texto branco */
+}
+
+.btn:hover {
+    text-decoration: none; /* Garante que o sublinhado não apareça ao passar o mouse */
+    transform: scale(1.05); /* Aumenta o botão levemente ao passar o mouse */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra ao passar o mouse */
+}
+
+
 .table-striped tbody tr:nth-of-type(odd) {
     background-color: #f9f9f9;
 }
@@ -108,8 +369,16 @@ h1, h2 {
     padding: 12px;
 }
 
+/* Faz a tabela ocupar o máximo de largura possível, mas sempre centralizada */
+.table {
+    width: auto; /* Ajusta a largura da tabela conforme o conteúdo */
+    margin: 0 auto; /* Garante que a tabela fique centralizada */
+}
+
+/* Centralizar a tabela */
 .table-responsive {
-    overflow-x: auto;
+    display: flex;
+    justify-content: center; /* Centraliza a tabela horizontalmente */
 }
 /* Configurações de fundo */
 .dias-verde {
@@ -129,9 +398,225 @@ h1, h2 {
     color: #ffffff; /* Texto roxo escuro */
 }
 
-@media (max-width: 768px) {
-    .btn-primary, .btn-info, .btn-warning, .btn-danger {
-        width: 100%;
-        margin-top: 10px;
-    }
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    list-style-type: none; /* Remove as bolinhas */
+    padding-left: 0; /* Remove o recuo padrão */
+}
+.page-item {
+    margin: 0 5px; /* Espaçamento entre os botões */
+}
+
+.pagination .page-item {
+    margin: 0 5px;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff; /* Cor de fundo do botão ativo */
+    border-color: #007bff; /* Borda do botão ativo */
+    color: white;
+}
+
+.pagination .page-link {
+    color: #007bff;
+    border-radius: 5px;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    transition: background-color 0.3s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #f1f1f1; /* Cor ao passar o mouse */
+    border-color: #007bff;
+}
+
+.pagination .page-link:focus {
+    box-shadow: none;
+    outline: none;
+}
+
+/* Bordas ainda mais suaves */
+.table-bordered td, 
+.table-bordered th {
+    border: 0.5px solid #9b9797 !important; /* Cor cinza mais clara e borda mais fina */
+}
+
+.btn-custom {
+    padding: 10px 20px; /* Aumenta o padding do botão */
+    border-radius: 5px; /* Borda arredondada */
+    transition: background-color 0.3s ease, transform 0.2s; /* Transição suave */
+}
+
+.btn-custom:hover {
+    background-color: #007bff; /* Muda a cor de fundo ao passar o mouse */
+    transform: scale(1.05); /* Aumenta um pouco o tamanho do botão */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra ao botão */
+}
+
+.btn-custom.mb-4 {
+    margin-bottom: 15px; /* Aumenta o espaçamento inferior */
+}
+
+.tabela-titulo {
+    font-size: 2.5rem; /* Tamanho do texto */
+    font-weight: bold; /* Negrito */
+    color: #512898; /* Cor correspondente à sua paleta */
+    text-align: center; /* Centraliza o texto */
+    margin-bottom: 20px; /* Espaço abaixo do título */
+    position: relative; /* Para usar o pseudo-elemento */
+}
+
+.tabela-titulo::after {
+    content: '';
+    display: block;
+    width: 50px; /* Largura da linha */
+    height: 4px; /* Altura da linha */
+    background-color: #af23af; /* Cor da linha */
+    margin: 10px auto; /* Centraliza a linha */
+    border-radius: 5px; /* Arredondar as bordas da linha */
+}
+
+.container-inicio {
+    margin: 20px auto; /* Centraliza o container */
+    padding: 30px; /* Adiciona padding interno */
+    background-color: #ffffff; /* Fundo branco */
+    border-radius: 12px; /* Bordas arredondadas */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    max-width: 800px; /* Limita a largura máxima */
+    font-family: 'Arial', sans-serif; /* Fonte padrão */
+    color: #333; /* Cor do texto */
+}
+
+.container-inicio {
+    margin: 20px auto; /* Centraliza o container */
+    padding: 30px; /* Adiciona padding interno */
+    background-color: #ffffff; /* Fundo branco */
+    border-radius: 12px; /* Bordas arredondadas */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    max-width: 800px; /* Limita a largura máxima */
+    font-family: 'Arial', sans-serif; /* Fonte padrão */
+    color: #333; /* Cor do texto */
+}
+
+/* Estilo para os títulos */
+.container-inicio h1 {
+    font-size: 2.8rem; /* Tamanho da fonte do título principal */
+    margin-bottom: 25px; /* Espaçamento abaixo do título */
+    color: #512898; /* Cor do título principal */
+    text-align: center; /* Centraliza o título */
+}
+
+.container-inicio h2 {
+    font-size: 2.2rem; /* Tamanho da fonte dos subtítulos */
+    margin-top: 30px; /* Espaçamento acima do subtítulo */
+    margin-bottom: 20px; /* Espaçamento abaixo do subtítulo */
+    color: #512898; /* Cor do subtítulo */
+    border-bottom: 2px solid #e2e2e2; /* Linha abaixo do subtítulo */
+    padding-bottom: 10px; /* Espaçamento abaixo da linha */
+}
+
+/* Estilo para parágrafos */
+.container-inicio p {
+    font-size: 1.3rem; /* Aumenta o tamanho da fonte dos parágrafos */
+    line-height: 1.7; /* Aumenta o espaço entre as linhas */
+    margin-bottom: 25px; /* Espaçamento abaixo dos parágrafos */
+    text-align: justify; /* Justifica o texto para um layout mais organizado */
+}
+
+/* Estilo para listas */
+.container-inicio ul {
+    margin-top: 10px; /* Espaçamento acima da lista */
+    margin-bottom: 25px; /* Espaçamento abaixo da lista */
+    padding-left: 0; /* Remove o padding padrão */
+    list-style-type: none; /* Remove os marcadores padrão */
+}
+
+/* Estilo para itens da lista */
+.container-inicio li {
+    font-size: 1.2rem; /* Aumenta o tamanho da fonte dos itens da lista */
+    margin-bottom: 15px; /* Espaçamento abaixo de cada item da lista */
+    position: relative; /* Para a estilização do marcador */
+    padding-left: 30px; /* Espaçamento à esquerda para o marcador */
+}
+
+/* Marcador personalizado */
+.container-inicio li::before {
+    content: "✔️"; /* Marcador personalizado */
+    color: #512898; /* Cor do marcador */
+    position: absolute; /* Posiciona o marcador */
+    left: 0; /* Alinha o marcador à esquerda */
+    top: 0; /* Alinha o marcador ao topo do item */
+    font-size: 1.5rem; /* Tamanho do marcador */
+    line-height: 1; /* Alinha o marcador ao texto */
+}
+
+
+input[type="date"] {
+    padding: 8px 10px; /* Espaçamento interno */
+    border-radius: 5px; /* Bordas arredondadas */
+    border: 1px solid #ced4da; /* Borda padrão */
+    font-size: 1rem; /* Tamanho da fonte */
+    margin-right: 10px; /* Espaçamento à direita */
+    transition: border-color 0.3s ease; /* Transição suave na cor da borda */
+}
+
+/* Efeito de foco para o campo de data */
+input[type="date"]:focus {
+    border-color: #007bff; /* Cor da borda ao focar */
+    outline: none; /* Remove o contorno padrão */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Sombra ao focar */
+}
+.filter-form {
+    max-width: 400px; /* Limita a largura do formulário */
+    margin: 20px auto; /* Centraliza o formulário */
+    padding: 30px; /* Adiciona espaçamento interno */
+    border-radius: 10px; /* Bordas arredondadas */
+    background-color: #ffffff; /* Fundo branco */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Sombra suave */
+}
+
+.form-group {
+    margin-bottom: 20px; /* Espaço entre os elementos do formulário */
+}
+
+label {
+    font-weight: 600; /* Fonte mais forte para o rótulo */
+    margin-bottom: 10px; /* Espaço abaixo do rótulo */
+    display: block; /* Exibe o rótulo como bloco */
+    color: #333; /* Cor do texto do rótulo */
+}
+
+.form-control {
+    padding: 12px; /* Aumenta o padding do campo de seleção */
+    border: 1px solid #ced4da; /* Cor da borda */
+    border-radius: 5px; /* Bordas arredondadas */
+    font-size: 1rem; /* Tamanho da fonte */
+    background-color: #f8f9fa; /* Fundo do campo de seleção */
+    transition: border-color 0.2s; /* Transição suave para a borda */
+}
+
+/* Efeito de foco para o campo de seleção */
+.form-control:focus {
+    border-color: #007bff; /* Cor da borda ao focar */
+    outline: none; /* Remove o contorno padrão */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Sombra ao focar */
+}
+
+/* Estilo do botão de filtrar */
+.btn-custom {
+    padding: 12px 20px; /* Aumenta o padding do botão */
+    border-radius: 5px; /* Bordas arredondadas */
+    font-weight: bold; /* Destaca o texto do botão */
+    width: 100%; /* Botão ocupa toda a largura do formulário */
+    background-color: #007bff; /* Cor de fundo */
+    border: none; /* Remove borda padrão */
+    color: white; /* Cor do texto */
+    cursor: pointer; /* Cursor de ponteiro */
+    transition: background-color 0.2s; /* Transição suave para o fundo */
+}
+
+.btn-custom:hover {
+    background-color: #0056b3; /* Cor de fundo ao passar o mouse */
 }
