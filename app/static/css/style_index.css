@@ -8,28 +8,55 @@
 body {
     font-family: Arial, sans-serif;
     color: #4a4a4a;
-    overflow: hidden; /* Evita rolagem vertical */
+    overflow-x: hidden; /* Somente ocultar rolagem horizontal */
 }
+
 
 .container {
     display: flex;
-    height: 100vh; /* Faz com que a altura ocupe toda a tela */
-}
-.main-content {
-    margin-bottom: 250px; /* Ajuste o valor conforme necessário */
+    flex-direction: column;
+    min-height: 100vh; /* Mudei para min-height */
+    overflow: hidden;
 }
 
-/* Navbar lateral */
+/* Estilos para dispositivos maiores */
 .navbar {
     width: 250px;
     background-color: #512898;
-    height: 100vh; /* Altura total da tela */
+    height: calc(100vh - 80px);
     padding: 20px;
-    position: fixed; /* Fixa a barra na lateral esquerda */
-    top: 0;
+    position: fixed;
+    top: 80px;
     left: 0;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Adiciona sombra para um efeito de profundidade */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
 }
+
+
+
+@media (max-width: 768px) {
+    .navbar {
+        width: 100%; /* Navbar ocupa 100% da largura em telas menores */
+        height: auto; /* Ajusta a altura para conteúdo variável */
+        position: relative; /* Remove a posição fixa */
+        top: 0;
+        box-shadow: none; /* Remove a sombra em telas menores */
+    }
+    .navbar ul {
+        display: flex;
+        flex-direction: row; /* Alinha os itens horizontalmente */
+        justify-content: space-around; /* Espaça os itens igualmente */
+        flex-wrap: wrap; /* Permite quebra de linha para itens */
+    }
+    .navbar ul li {
+        margin-bottom: 10px; /* Ajusta o espaçamento entre itens */
+    }
+    .navbar ul li a {
+        font-size: 16px; /* Ajusta o tamanho da fonte */
+        padding: 10px 5px; /* Ajusta o padding dos links */
+    }
+}
+
+
 
 .navbar ul {
     list-style-type: none;
@@ -67,19 +94,33 @@ body {
 }
 
 
-/* Cabeçalho */
+/* Define o padding superior dinamicamente */
+body {
+    padding-top: 80px; /* Um valor inicial razoável */
+}
+
 .header {
     background-color: #f8f9fa;
     padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: calc(100% - 250px); /* Ajusta a largura do cabeçalho para não sobrepor a navbar */
-    margin-left: 250px; /* Garante que o cabeçalho não fique embaixo da navbar */
-    position: fixed; /* Fixa o cabeçalho no topo */
+    width: 100%;
+    position: fixed;
     top: 0;
     z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    height: 80px; /* Definir altura fixa */
 }
+
+
+@media (max-width: 768px) {
+    /* Se o header mudar de tamanho em telas menores, o padding pode ser ajustado */
+    body {
+        padding-top: 120px; /* Ajuste para o tamanho específico da tela pequena */
+    }
+}
+
 
 .logo-container {
     display: flex;
@@ -113,52 +154,50 @@ body {
     color: #7d228b;
 }
 
-/* Conteúdo principal */
 .main-content {
     flex-grow: 1;
     padding: 20px;
     background-color: #fff;
-    min-height: 100vh;
-    margin-top: 80px; /* Espaço abaixo do cabeçalho fixo */
-    margin-left: 250px; /* Espaço à direita da navbar fixa */
-    overflow-y: auto; /* Ativa rolagem vertical para o conteúdo */
-    padding-bottom: 60px; /* Evita que o conteúdo sobreponha o rodapé */
+    margin-top: 80px; /* Mesmo valor da altura do header */
+    margin-left: 250px; /* Espaço para a navbar fixa */
+    padding-bottom: 150px; /* Espaço para o footer fixo */
 }
 
-/* Rodapé */
+
+
 .footer {
-    padding-top: 200px; /* Ajuste o valor conforme necessário */
-    background-color: #f8f9fa; /* Exemplo de cor de fundo, ajuste conforme necessário */
-    padding: 5px; /* Diminuir o padding geral para reduzir a altura */
+    background-color: #f8f9fa;
+    padding: 8px 15px;
     display: flex;
-    flex-direction: column; /* Coluna para organizar os elementos */
+    flex-direction: column;
     align-items: center;
     text-align: center;
-    position: fixed; /* Fixa o rodapé na parte inferior */
+    position: fixed; /* Alterado para fixed */
     bottom: 0;
-    left: 250px; /* Alinha o rodapé com a borda da navbar */
-    width: calc(100% - 250px); /* Garante que o rodapé ocupe a largura restante */
+    width: 100%;
     z-index: 1000;
+    height: auto;
 }
+
+
 
 .footer-content {
     display: flex;
     justify-content: space-around;
-    width: 100%; /* Preenche toda a largura */
+    width: 100%;
+    max-width: 1200px; /* Define uma largura máxima para organizar melhor o conteúdo */
     flex-wrap: wrap;
 }
 
 .footer-content div {
-    margin: 5px; /* Reduzir a margem entre os elementos */
+    margin: 5px;
+    flex-basis: 200px; /* Define um tamanho base flexível */
+    text-align: center;
 }
 
-.logo-footer .logo-img {
-    width: 100px; /* Reduzir o tamanho da logo */
+.logo-footer img {
+    width: 120px; /* Reduzi o tamanho da logo */
     height: auto;
-}
-
-.projetos-inteligentes {
-    color: #af23af;
 }
 
 .informacoes-footer a,
@@ -166,24 +205,65 @@ body {
 .contato-footer a {
     color: #512898;
     text-decoration: none;
-    font-size: 14px; /* Reduzir o tamanho da fonte */
+    font-size: 13px; /* Diminuí o tamanho da fonte */
 }
 
 .footer-address {
     width: 100%;
     background-color: #ccc;
     text-align: center;
-    padding: 5px 0; /* Reduzir o padding */
-    margin-top: 5px; /* Reduzir o espaço entre os conteúdos */
-    font-size: 12px; /* Diminuir o tamanho da fonte */
+    padding: 4px 0; /* Reduzi o padding */
+    margin-top: 5px;
+    font-size: 12px;
 }
 
 .footer-bottom {
     background-color: #ccc;
     text-align: center;
-    padding: 5px 0;
+    padding: 4px 0;
     font-size: 12px;
 }
+
+/* Media Queries para responsividade */
+@media (max-width: 768px) {
+    .footer-content {
+        flex-direction: column; /* Para telas menores, os elementos ficam em coluna */
+        align-items: center;
+    }
+    
+    .footer-content div {
+        flex-basis: 100%;
+    }
+
+    .logo-footer img {
+        width: 100px; /* Ajusta o tamanho da logo para telas menores */
+    }
+    
+    .footer-address, .footer-bottom {
+        font-size: 11px; /* Diminuí o tamanho da fonte em telas pequenas */
+    }
+}
+
+@media (max-width: 768px) {
+    .footer {
+        position: fixed; /* Fixo também em telas menores */
+    }
+}
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+        margin-top: 120px; /* Ajuste conforme necessário para o header */
+        padding-bottom: 80px; /* Espaço para o footer fixo */
+    }
+    .navbar {
+        width: 100%;
+        height: auto;
+        position: relative; /* Remover navbar fixa em telas menores */
+    }
+}
+
+
+
 
 /* Estilos para dispositivos menores */
 @media (max-width: 768px) {
@@ -198,23 +278,49 @@ body {
         margin-left: 0;
     }
 
-    .footer {
-        left: 0;
-        width: 100%;
-    }
-
-    .main-content {
-        margin-left: 0;
-        margin-top: 80px;
-    }
-
     .navbar {
         width: 100%;
         min-height: auto;
         position: relative; /* Retira a navbar fixa em telas menores */
     }
 }
+/* Estilos para dispositivos menores */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        height: auto; /* Ajusta a altura para conteúdo variável */
+    }
 
+    .header {
+        flex-direction: column;
+        text-align: center;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .navbar {
+        width: 100%;
+        height: auto; /* Ajusta a altura para conteúdo variável */
+        position: relative; /* Retira a navbar fixa em telas menores */
+        box-shadow: none; /* Remove a sombra da navbar */
+    }
+
+    .navbar ul {
+        display: flex;
+        flex-direction: row; /* Alinha os itens horizontalmente */
+        justify-content: space-around; /* Espaça os itens igualmente */
+        flex-wrap: wrap; /* Permite quebra de linha para itens */
+    }
+
+    .navbar ul li {
+        margin-bottom: 10px; /* Ajusta o espaçamento entre itens */
+    }
+
+    .navbar ul li a {
+        font-size: 16px; /* Ajusta o tamanho da fonte */
+        padding: 10px 5px; /* Ajusta o padding dos links */
+    }
+}
 
 h1, h2 {
     color: #333;
@@ -478,26 +584,19 @@ h2 {
     border-radius: 5px; /* Arredondar as bordas da linha */
 }
 
-.container-inicio {
-    margin: 20px auto; /* Centraliza o container */
-    padding: 30px; /* Adiciona padding interno */
-    background-color: #ffffff; /* Fundo branco */
-    border-radius: 12px; /* Bordas arredondadas */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    max-width: 800px; /* Limita a largura máxima */
-    font-family: 'Arial', sans-serif; /* Fonte padrão */
-    color: #333; /* Cor do texto */
-}
 
 .container-inicio {
-    margin: 20px auto; /* Centraliza o container */
+    margin: 20px auto 80px auto; /* Centraliza o container e adiciona margem inferior */
     padding: 30px; /* Adiciona padding interno */
     background-color: #ffffff; /* Fundo branco */
     border-radius: 12px; /* Bordas arredondadas */
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    max-width: 800px; /* Limita a largura máxima */
+    max-width: 50%; /* Limita a largura máxima */
     font-family: 'Arial', sans-serif; /* Fonte padrão */
     color: #333; /* Cor do texto */
+    width: 100%; /* Ajusta a largura para ser responsiva */
+    box-sizing: border-box; /* Inclui padding e borda na largura total */
+    height: auto; /* Ajusta a altura automaticamente */
 }
 
 /* Estilo para os títulos */
@@ -620,3 +719,4 @@ label {
 .btn-custom:hover {
     background-color: #0056b3; /* Cor de fundo ao passar o mouse */
 }
+
